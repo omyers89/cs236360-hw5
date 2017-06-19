@@ -1,0 +1,544 @@
+%{
+	#include "Contracts.hpp"
+	#include "Utils.hpp"
+	#include "SymbolTable.h"
+	#include <iostream>
+	#include <stdlib.h>
+
+	using namespace std;
+
+	extern int yylex();
+	int yyerror(char * message);
+	void addFunc(STYPE id, STYPE ret);
+	extern int yylineno;
+	SymbolTable* symbolTable;
+	bool isAnyFuncDefined;
+%}
+
+%token VOID INT BYTE B BOOL STRINGTYPE TRUE FALSE RETURN IF WHILE SWITCH CASE BREAK COLON SC COMMA LPAREN LBRACE RBRACE ID NUM STRING EOFF
+
+%nonassoc RPAREN /* solving dangling-else problem */
+%nonassoc ELSE /* solving dangling-else problem */
+
+%right ASSIGN
+%left OR
+%left AND
+%left RELOP
+%left BINOP
+%right NOT
+
+%%
+
+S : M Program EOFF {symbolTable->EndProg(); exit(1);}
+;
+
+Program	: Funcs
+          {
+			
+            if(!symbolTable->IsMainDefined)
+            {
+                output::errorMainMissing();
+                exit(0);
+            }
+            
+          }
+	;
+
+Funcs : FuncDecl Funcs | {if(!isAnyFuncDefined) {output::errorSyn(yylineno);exit(0);}}
+	;
+
+FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statements RBRACE
+           {
+                isAnyFuncDefined = true;
+                /*if(areEqualTypes(symbolTable->ReturnType, $1.type))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }*/
+                if($1.type == _VOID && $2.varName == MAIN && symbolTable->formalList.argTypes.size() == 0)
+                    symbolTable->IsMainDefined = true;
+				symbolTable->EndScope();
+                symbolTable->FlushFormalList();
+                symbolTable->ReturnType = _VOID;
+           }
+    ;
+
+RetType : Type
+          {
+                $$.type = $1.type;
+          } |
+          VOID { $$.type = _VOID;}
+    ;
+
+Formals : FormalsList | /*epsilon*/
+    ;
+
+FormalsList : FormalDecl |
+              FormalDecl COMMA FormalsList
+    ;
+
+FormalDecl : Type ID
+             {
+                symbolTable->AddToFormalList($2.varName,$1.type);
+             }
+    ;
+
+Statements : Statement {$$.type = $1.type;} | Statements Statement {$$.type = $2.type;}
+    ;
+
+Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();} |
+            Type ID SC
+            {
+                if(symbolTable->IsWhileOrIfIntact)
+                {
+                    symbolTable->OpenScope();
+                    symbolTable->IsWhileOrIfScopeOpened = true;
+                }
+                symbolTable->IsWhileOrIfIntact = false;
+                varType out;
+                if(symbolTable->GetVar($2.varName,out))
+                {
+                    output::errorDef(yylineno,$2.varName.c_str());
+                    exit(0);
+                }
+				$2.type = $1.type;
+                symbolTable->AddVar($2.varName,$1.type);
+            } |
+            Type ID ASSIGN Exp SC
+            {
+                varType outExp = $4.type;
+                //bool resExp = symbolTable->GetVar($4.varName,outExp);
+                if(symbolTable->IsWhileOrIfIntact)
+                {
+                    symbolTable->OpenScope();
+                    symbolTable->IsWhileOrIfScopeOpened = true;
+                }
+                symbolTable->IsWhileOrIfIntact = false;
+                
+                    if(!areEqualTypes($1.type,outExp))
+                    {
+                        output::errorMismatch(yylineno);
+                        exit(0);
+                    }
+              
+
+                varType out;
+                if(symbolTable->GetVar($2.varName,out))
+                {
+                    output::errorDef(yylineno,$2.varName.c_str());
+                    exit(0);
+                }
+
+				if(isByte($1.type) && isNumeric(outExp) && ($4.numVal >= MAXBYTE))
+                {
+                    char* str = toString($4.numVal); //TODO: try to find a better intToString
+                    output::errorByteTooLarge(yylineno,str);
+                    free(str); //TODO: i'm crying
+                    exit(0);
+                }
+				$2.type = $1.type;
+                symbolTable->AddVar($2.varName,$1.type);
+            } |
+            ID ASSIGN Exp SC
+            {
+                varType outId;
+                varType outExp= $3.type;
+                //bool resExp = symbolTable->GetVar($3.varName,outExp);
+                bool resId = symbolTable->GetVar($1.varName,outId);
+                if(!resId)
+                {
+                    output::errorUndef(yylineno,$1.varName.c_str());
+                    exit(0);
+                }
+                
+                    bool intAndByte = (areEqualTypes(outId,outExp));
+                    if(!intAndByte)
+                    {
+                        output::errorMismatch(yylineno);
+                        exit(0);
+                    }
+               
+                if(isByte(outId) && isNumeric(outExp) && $3.numVal >= MAXBYTE)
+                {
+                    char* str = toString($4.numVal); //TODO: try to find a better intToString
+                    output::errorByteTooLarge(yylineno,str);
+                    free(str); //TODO: i'm crying
+                    exit(0);
+                }
+
+            } |
+            Call SC {$$.type = $1.type;} |
+            RETURN SC
+            {
+			//cout << "in RETURN  SC:" << endl;
+				
+                if(symbolTable->ReturnType != _VOID)
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
+            } |
+            RETURN Exp SC
+            {
+                varType outType;
+                bool resExp = symbolTable->GetVar($2.varName,outType);
+
+				/* cout << "in RETURN Exp SC:" << endl;
+				if (resExp){
+				cout << "found varName: " << $2.varName << endl;
+				cout << "out Type is: " << outType << endl;
+				cout << "st-> returntype is: " << symbolTable->ReturnType << endl;
+				} 
+				 cout << "st-> returntype is: " << symbolTable->ReturnType << endl; */
+                if((symbolTable->ReturnType == _VOID) 
+				|| (resExp && !areEqualTypes(symbolTable->ReturnType, outType)) 
+				|| ((!resExp) && !areEqualTypes(symbolTable->ReturnType, $2.type)))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
+            } |
+            IF LPAREN Exp RPAREN K Statement
+            {
+			/*cout << "IF LPAREN Exp RPAREN K Statement: " << endl;
+			cout << "Exp type is: " << $3.type << endl; */
+                if(!isBoolean($3.type))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
+                if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+                $$.type = $6.type;
+            } |
+            IF LPAREN Exp RPAREN K Statement ELSE KE Statement
+            {
+			/*cout << "IF LPAREN Exp RPAREN K Statement ELSE K : " << endl;
+			cout << "Exp type is: " << $3.type << endl; */
+                if(!isBoolean($3.type))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
+                if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+                $$.type = $9.type;
+            } |
+            WHILE LPAREN Exp RPAREN W Statement
+            {
+                if(!isBoolean($3.type))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
+                symbolTable->WhileCount--;
+                if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+            } |
+            BREAK SC
+            {
+                if(symbolTable->WhileCount <= 0)
+                {
+                    output::errorUnexpectedBreak(yylineno);
+                    exit(0);
+                }
+            } |
+            SWITCH LPAREN Exp RPAREN KS LBRACE CaseList RBRACE SC
+            {
+                if(!isNumeric($3.type))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
+            }
+    ;
+
+CaseList : CaseStat CaseList | CaseStat
+    ;
+
+CaseStat : CASE NUM COLON KE Statement BREAK SC 
+			{
+			if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+			}|
+           CASE NUM B COLON KE Statement BREAK SC
+		   {
+			if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+			}
+    ;
+
+Call : ID LPAREN ExpList RPAREN
+        {
+            if($1.varName == LIBPRINT)
+            {
+                if((symbolTable->expList.size() != 1) || !isString(symbolTable->expList.back()))
+                {
+                    std::vector<const char*> stringVec;
+                    stringVec.push_back("STRING");
+                    output::errorPrototypeMismatch(yylineno,LIBPRINT,stringVec);
+                    exit(0);
+                }
+                $$.type = _VOID;
+                symbolTable->FlushExpList();
+            }
+            else if($1.varName == LIBPRINTI)
+            {
+                if((symbolTable->expList.size() != 1) || !isNumeric(symbolTable->expList.back()))
+                {
+                    std::vector<const char*> intVec;
+                    intVec.push_back("INT");
+                    output::errorPrototypeMismatch(yylineno,LIBPRINTI,intVec);
+                    exit(0);
+                }
+                $$.type = _VOID;
+                symbolTable->FlushExpList();
+            }
+            else
+            {
+                vector<varType> expected;
+                varType retType;
+                SymbolTableResult res = symbolTable->CallFunc($1.varName,expected,retType);
+				 /*std::cout << "in call: \nid is: " << $1.varName << " expList :" << std::endl;
+				std::cout << symbolTable->expList[0] <<std::endl;
+				std::cout << "expected is:" << expected[0] << std::endl; */
+                if(res == PROTOTYPE_MISMATCH)
+                {
+                    output::errorPrototypeMismatch(yylineno,$1.varName.c_str(),getTypeNames(expected));
+                    exit(0);
+                }
+                if(res == NOT_DEFINED)
+                {
+                    output::errorUndefFunc(yylineno,$1.varName.c_str());
+                    exit(0);
+                }
+				//std::cout << "expected is:" << retType << std::endl; 
+                $$.type = retType;
+				$1.type = retType;
+                symbolTable->FlushExpList(expected.size());
+            }
+        } |
+        ID LPAREN RPAREN
+        {
+            vector<varType> expected;
+            varType retType;
+            SymbolTableResult res = symbolTable->CallFunc($1.varName,expected,retType);
+            if(res == PROTOTYPE_MISMATCH)
+            {
+                output::errorPrototypeMismatch(yylineno,$1.varName.c_str(),getTypeNames(expected));
+                exit(0);
+            }
+            if(res == NOT_DEFINED)
+            {
+                output::errorUndefFunc(yylineno,$1.varName.c_str());
+                exit(0);
+            }
+            $$.type = retType;
+			$1.type = retType;
+        }
+    ;
+
+ExpList : Exp
+          {
+		  //std::cout << "in ExpList : Exp \nExp is:" << $1.type <<std::endl;
+            symbolTable->AddToExpList($1.type);
+          } |
+          Exp COMMA ExpList
+          {
+		  //std::cout << "in ExpList : Exp COMMA ExpList \nExp1 is:" << $1.type  <<std::endl;
+
+            symbolTable->AddToExpList($1.type);
+          }
+    ;
+
+Type : INT {$$.type = _INT;} | BYTE {$$.type = _BYTE;} | BOOL {$$.type = _BOOL;}
+
+    ;
+
+Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type; } |
+      ID
+      {
+            varType type;
+            bool result = symbolTable->GetVar($1.varName,type);
+            if(!result)
+            {
+                output::errorUndef(yylineno,$1.varName.c_str());
+                exit(0);
+            }
+            $$.type = type;
+            $$.varName = $1.varName;
+			symbolTable->LastExpTypeIs = type;
+      } |
+      Call {$$.type = $1.type; symbolTable->LastExpTypeIs = $1.type;} |
+      NUM {$$.type = _INT; $$.numVal = $1.numVal; $$.varName=""; symbolTable->LastExpTypeIs = _INT;} |
+      NUM B {$$.type = _BYTE; $$.numVal = $1.numVal; $$.varName=""; symbolTable->LastExpTypeIs = _BYTE;} |
+      STRING {$$.type = _STRING; $$.stringVal = $1.stringVal; $$.varName=""; symbolTable->LastExpTypeIs = _STRING;} |
+      TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; $$.varName=""; symbolTable->LastExpTypeIs = _BOOL;} |
+      FALSE {$$.type = _BOOL; $$.boolVal = $1.boolVal; $$.varName=""; symbolTable->LastExpTypeIs = _BOOL;} |
+      NOT Exp
+      {
+	  		varType out1 = $2.type;
+               
+            if(!isBoolean(out1))
+            {
+                output::errorMismatch(yylineno);
+                exit(0);
+            }
+            
+            $$.type = _BOOL;
+            $$.boolVal = !$1.boolVal;
+			symbolTable->LastExpTypeIs = _BOOL;
+      } |
+      Exp AND Exp
+      {
+            if(!isBoolean($1.type) || !areEqualTypes($1.type,$3.type))
+            {
+                output::errorMismatch(yylineno);
+                exit(0);
+            }
+            $$.type = $1.type;
+            $$.boolVal = $1.boolVal && $3.boolVal;
+			symbolTable->LastExpTypeIs = _BOOL;
+      } |
+      Exp OR Exp
+      {
+            if(!isBoolean($1.type) || !areEqualTypes($1.type,$3.type))
+            {
+                output::errorMismatch(yylineno);
+                exit(0);
+            }
+            $$.type = $1.type;
+            $$.boolVal = $1.boolVal || $3.boolVal;
+			symbolTable->LastExpTypeIs = _BOOL;
+      } |
+      Exp RELOP Exp
+      {
+			varType out1;
+                if(!symbolTable->GetVar($1.varName,out1))
+                {
+                    out1 = $1.type;
+					//output::errorDef(yylineno,$1.varName.c_str());
+                    //exit(0);
+                }
+			varType out2;
+                if(!symbolTable->GetVar($3.varName,out2))
+                {
+					out2 = $3.type;
+                    //output::errorDef(yylineno,$3.varName.c_str());
+                    //exit(0);
+                }
+			if(!isNumeric(out1)  || !isNumeric(out2)) /* !areEqualTypes($1.type,$3.type) || ) */
+            {
+                output::errorMismatch(yylineno);
+                exit(0);
+            }
+            $$.type = _BOOL;
+			symbolTable->LastExpTypeIs = _BOOL;
+      } |
+      Exp BINOP Exp
+      {
+	        if(!isNumeric($1.type) || !isNumeric($3.type))
+	        {
+	            output::errorMismatch(yylineno);
+	            exit(0);
+	        }
+			if (isInt($1.type) || isInt($3.type)){
+			$$.type = _INT;
+			symbolTable->LastExpTypeIs = _INT;
+			}
+			else{
+	        $$.type = _BYTE;
+			symbolTable->LastExpTypeIs = _BYTE;
+			}
+			
+      }
+    ;
+
+M : { symbolTable->OpenScope();}
+    ;
+
+
+
+W : {
+        symbolTable->WhileCount++;
+        symbolTable->IsWhileOrIfIntact = true;
+		if ( !(symbolTable->LastExpTypeIs == _BOOL)){
+		output::errorMismatch(yylineno);
+        exit(0);
+	}
+    }
+    ;
+
+K : { symbolTable->IsWhileOrIfIntact = true; 
+		if ( !(symbolTable->LastExpTypeIs == _BOOL)){
+		output::errorMismatch(yylineno);
+        exit(0);
+	}}
+    ;
+
+KS : { 
+		if (! isNumeric(symbolTable->LastExpTypeIs)){
+		output::errorMismatch(yylineno);
+        exit(0);
+	}}
+    ;
+KE : { symbolTable->IsWhileOrIfIntact = true; }
+    ;
+
+V : {symbolTable->IsWhileOrIfIntact = false;}
+    ;
+
+
+%%
+
+int main(){
+	symbolTable = new SymbolTable();
+	isAnyFuncDefined = false;
+	yyparse();
+}
+
+int yyerror(char * message){
+	output::errorSyn(yylineno);
+	exit(0);
+}
+
+
+void checkBool(varType vt){
+	if (vt != _BOOL){
+		output::errorMismatch(yylineno);
+        exit(0);
+	}
+}
+
+void addFunc(STYPE id, STYPE ret){
+
+    if(ret.type != _INT && ret.type != _BOOL && ret.type != _BYTE && ret.type != _VOID)
+    {
+        output::errorMismatch(yylineno);
+        exit(0);
+    }
+    SymbolTableResult res = symbolTable->AddFunc(id.varName,ret.type);
+    if(res == FAIL)
+    {
+        output::errorDef(yylineno,id.varName.c_str());
+        exit(0);
+    }
+    symbolTable->ReturnType = ret.type;
+}
+
+
