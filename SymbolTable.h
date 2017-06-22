@@ -104,13 +104,14 @@ public:
 	bool EndProg(); //just pop tables and offsets
 	//SymbolTableResult AddFunc(string name, varType retType, varList &argNameTypes);
 	SymbolTableResult AddFunc(string name, varType retType);
+	SymbolTableResult AddFunc(string name, varType retType, string & badVarOut);
 	//SymbolTableResult CallFunc(string name, vector<varType> &callArgs, vector<varType> &expectedArgs, varType &ret);
 	SymbolTableResult CallFunc(string name, vector<varType> &expectedArgs, varType &ret);
 
 	bool OpenScope();//make new table, add to tables and update offsets
 	bool AddVar(string name, varType t); //insert at top table (name, tyoe, offset), and update offset
 	bool GetVar(string name, varType& outVarType); //return a reference to the object, or null and false otherwise
-
+	bool GetVarToAssign(string name, varType& outVarType);
 	void AddToFormalList(string varName, varType type);
 	void AddToExpList(varType type);
 	void FlushFormalList();

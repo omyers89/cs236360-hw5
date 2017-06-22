@@ -235,6 +235,10 @@ SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType){
 		VarData nvarData;
 		nvarData.t = nRetType;
 		nvarData.offset = noffset;
+		varType tmp;
+		if (GetVar(*namesIt, tmp)){
+			return FAIL;
+		}
 		if (!newFuncVarsTable->addVar(*namesIt, nvarData)){
 			return FAIL;
 		}
@@ -251,6 +255,60 @@ SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType){
 	DEBUG((_tables._tableStack.size()));
 	return SUCCESS;
 }
+
+
+SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType, string &badVarOut){
+	IdType idt;
+	bool isfunc;
+	if (funcName == "print" || funcName == "printi" || GetFunc(funcName, idt, isfunc)){
+		badVarOut = funcName;
+		return FAIL;
+	}
+	IdType newIdType;
+	newIdType.retType = newRetType;
+	vector<varType>::iterator it = formalList.argTypes.begin();
+	for (; it != formalList.argTypes.end(); it++){
+		newIdType.args.push_back(*it);
+	}
+	VarData newFuncData;
+	newFuncData.t = newIdType;
+	newFuncData.offset = 0;
+
+	//Table* newFuncTable = new Table(_tables.top(), _FUNC);
+	Table* newFuncVarsTable = new Table(_tables.top());
+	vector<string>::iterator namesIt = formalList.argNames.begin();
+	vector<varType>::iterator typesIt = formalList.argTypes.begin();
+	int noffset = -1;
+	for (; namesIt != formalList.argNames.end(); namesIt++, typesIt++){
+		IdType nRetType;
+		nRetType.retType = *typesIt;
+		VarData nvarData;
+		nvarData.t = nRetType;
+		nvarData.offset = noffset;
+		varType tmp;
+		if (GetVar(*namesIt, tmp)){
+			badVarOut = *namesIt;
+			return FAIL;
+		}
+		if (!newFuncVarsTable->addVar(*namesIt, nvarData)){
+			badVarOut = *namesIt;
+			return FAIL;
+		}
+		noffset--;
+	}
+	_tables.top()->addVar(funcName, newFuncData, true);
+	_offsetes.top() = 0;
+	DEBUG("function added to scope : ");
+	DEBUG((_tables._tableStack.size()));
+	_tables.push(newFuncVarsTable);
+	_offsetes.push();
+
+	DEBUG("new funcScope at : ");
+	DEBUG((_tables._tableStack.size()));
+	return SUCCESS;
+}
+
+
 
 bool CompareVecs(vector<varType> &callArgs, vector<varType> &expectedArgs){
 	vector<varType>::iterator it_c = callArgs.begin();
@@ -330,6 +388,7 @@ bool SymbolTable::AddVar(string name, varType t){
 	_offsetes.top()++;
 	return true;
 }
+
 bool SymbolTable::GetVar(string name, varType& outVarType){
 	IdType idt;
 	bool isfunc;
@@ -338,7 +397,13 @@ bool SymbolTable::GetVar(string name, varType& outVarType){
 	return ex;
 }
 
-
+bool SymbolTable::GetVarToAssign(string name, varType& outVarType){
+	IdType idt;
+	bool isfunc;
+	bool ex = GetFunc(name, idt, isfunc);
+	outVarType = idt.retType;
+	return ex && !isfunc;
+}
 
 void SymbolTable::AddToFormalList(string varName, varType type){
 	formalList.argNames.push_back(varName);

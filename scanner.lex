@@ -24,7 +24,7 @@ char *s;
 
 digit   		([0-9])
 letter  		([a-zA-Z])
-whitespace		([\t\n ])
+whitespace		([\t\n\r ])
 E               ([Ee][+-]?{digit}+)
 asciiTrailer    ({digit}{digit}{digit}{digit})
 

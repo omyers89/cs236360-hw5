@@ -144,7 +144,7 @@ Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();} |
                 varType outId;
                 varType outExp= $3.type;
                 //bool resExp = symbolTable->GetVar($3.varName,outExp);
-                bool resId = symbolTable->GetVar($1.varName,outId);
+                bool resId = symbolTable->GetVarToAssign($1.varName,outId);
                 if(!resId)
                 {
                     output::errorUndef(yylineno,$1.varName.c_str());
@@ -386,7 +386,15 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
       } |
       Call {$$.type = $1.type; symbolTable->LastExpTypeIs = $1.type;} |
       NUM {$$.type = _INT; $$.numVal = $1.numVal; $$.varName=""; symbolTable->LastExpTypeIs = _INT;} |
-      NUM B {$$.type = _BYTE; $$.numVal = $1.numVal; $$.varName=""; symbolTable->LastExpTypeIs = _BYTE;} |
+      NUM B {$$.type = _BYTE; $$.numVal = $1.numVal; $$.varName=""; 
+			if($1.numVal >= MAXBYTE)
+                {
+                    char* str = toString($1.numVal); //TODO: try to find a better intToString
+                    output::errorByteTooLarge(yylineno,str);
+                    free(str); //TODO: i'm crying
+                    exit(0);
+                }
+			symbolTable->LastExpTypeIs = _BYTE;} |
       STRING {$$.type = _STRING; $$.stringVal = $1.stringVal; $$.varName=""; symbolTable->LastExpTypeIs = _STRING;} |
       TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; $$.varName=""; symbolTable->LastExpTypeIs = _BOOL;} |
       FALSE {$$.type = _BOOL; $$.boolVal = $1.boolVal; $$.varName=""; symbolTable->LastExpTypeIs = _BOOL;} |
@@ -497,7 +505,13 @@ KS : {
         exit(0);
 	}}
     ;
-KE : { symbolTable->IsWhileOrIfIntact = true; }
+KE : {
+		if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+		 symbolTable->IsWhileOrIfIntact = true; }
     ;
 
 V : {symbolTable->IsWhileOrIfIntact = false;}
@@ -532,10 +546,12 @@ void addFunc(STYPE id, STYPE ret){
         output::errorMismatch(yylineno);
         exit(0);
     }
-    SymbolTableResult res = symbolTable->AddFunc(id.varName,ret.type);
+
+	string varNameOut;
+    SymbolTableResult res = symbolTable->AddFunc(id.varName,ret.type, varNameOut);
     if(res == FAIL)
     {
-        output::errorDef(yylineno,id.varName.c_str());
+        output::errorDef(yylineno,varNameOut.c_str());
         exit(0);
     }
     symbolTable->ReturnType = ret.type;
