@@ -13,6 +13,7 @@ using namespace std;
 typedef enum{_VOID, _BOOL, _INT, _BYTE, _STRING, _NO_ARGS} varType;
 typedef enum{_FUNC, _IF, _WHILE, _CASE, _NEST} scopeType;
 typedef enum{_EQ, _LE, _GE, _LT, _GT, _NEQ} relop;
+typedef enum{ _PLUS, _MINUS, _MUL, _DEV } binop;
 
 
 
@@ -28,6 +29,8 @@ typedef struct {
     bool isDeclaration;
     string varName;
     varType type;
+	relop relVal;
+	binop binVal;
 }STYPE;
 
 

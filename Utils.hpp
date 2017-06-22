@@ -18,4 +18,7 @@ char* toString(int num);
 std::vector<const char*> getTypeNames(std::vector<varType> vec);
 const char*  typeToString(varType);
 
+int calcBinOp(int e1, binop bo, int e2);
+bool calcRelOp(bool e1, relop ro, bool e2);
+
 #endif //CS236360_HW2_UTILS_H

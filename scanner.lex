@@ -111,16 +111,16 @@ asciiTrailer    ({digit}{digit}{digit}{digit})
 \{                         {    showToken("LBRACE");     return LBRACE;}
 \}                         {    showToken("RBRACE");     return RBRACE;}
 \=                         {    showToken("ASSIGN");     return ASSIGN;}
-\=\=                       {    showToken("RELOP");     return  RELOP;}  
-\!\=                       {    showToken("RELOP");     return  RELOP;}
-\<                         {    showToken("RELOP");     return  RELOP;}
-\>                         {    showToken("RELOP");     return  RELOP;}
-\<\=                       {    showToken("RELOP");     return  RELOP;}
-[>][=]                     {    showToken("RELOP");     return  RELOP;}
-[+]                        {    showToken("BINOP");     return   BINOP;}
-[-]                        {    showToken("BINOP");     return  BINOP;}
-[*]                        {    showToken("BINOP");     return  BINOP;}
-[/]                        {    showToken("BINOP");     return  BINOP;}
+\=\=                       {    showToken("RELOP");   yylval.relVal= _EQ;  return  RELOP;}  
+\!\=                       {    showToken("RELOP");   yylval.relVal= _NEQ;  return  RELOP;}
+\<                         {    showToken("RELOP");   yylval.relVal= _LT;  return  RELOP;}
+\>                         {    showToken("RELOP");   yylval.relVal= _GT;  return  RELOP;}
+\<\=                       {    showToken("RELOP");   yylval.relVal= _LE;  return  RELOP;}
+[>][=]                     {    showToken("RELOP");   yylval.relVal= _GE;  return  RELOP;}
+[+]                        {    showToken("BINOP");   yylval.binVal= _PLUS;  return   BINOP;}
+[-]                        {    showToken("BINOP");   yylval.binVal= _MINUS;  return  BINOP;}
+[*]                        {    showToken("BINOP");   yylval.binVal= _MUL;  return  BINOP;}
+[/]                        {    showToken("BINOP");   yylval.binVal= _DEV;    return  BINOP;}
 null                       {    showToken("NULL");      return NULL;}
 "0"                        {
                                 showToken("NUM");

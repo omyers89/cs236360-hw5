@@ -62,3 +62,43 @@ std::vector<const char*> getTypeNames(std::vector<varType> vec){
     }
     return ret;
 }
+
+int calcBinOp(int e1, binop bo, int e2){
+	switch (bo)
+	{
+	case _PLUS:
+		return e1 + e2;
+	case _MINUS:
+		return e1 - e2;
+	case _MUL:
+		return e1 * e2;
+	case _DEV:
+		return e1 / e2;
+
+	default:
+		return 0;
+	}
+
+}
+bool calcRelOp(bool e1, relop ro, bool e2){
+
+	switch (ro)
+	{
+	case _EQ:
+		return e1 == e2;
+	case _LE:
+		return e1 <= e2;
+	case _GE:
+		return e1 >= e2;
+	case _LT:
+		return e1 < e2;
+	case _GT:
+		return e1 > e2;
+	case _NEQ:
+		return e1 != e2;
+
+	default:
+		return false;
+	}
+
+}

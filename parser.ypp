@@ -330,7 +330,8 @@ Call : ID LPAREN ExpList RPAREN
 				//std::cout << "expected is:" << retType << std::endl; 
                 $$.type = retType;
 				$1.type = retType;
-                symbolTable->FlushExpList(expected.size());
+
+				// ############ add here calculate func val###################### 
             }
         } |
         ID LPAREN RPAREN
@@ -350,6 +351,7 @@ Call : ID LPAREN ExpList RPAREN
             }
             $$.type = retType;
 			$1.type = retType;
+			// ############ add here calculate func val###################### 
         }
     ;
 
@@ -361,7 +363,6 @@ ExpList : Exp
           Exp COMMA ExpList
           {
 		  //std::cout << "in ExpList : Exp COMMA ExpList \nExp1 is:" << $1.type  <<std::endl;
-
             symbolTable->AddToExpList($1.type);
           }
     ;
@@ -382,9 +383,20 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
             }
             $$.type = type;
             $$.varName = $1.varName;
+			/* $$.numVal = $1.numVal;
+			$$.stringVal = $1.stringVal;
+			$$.boolVal = $1.boolVal; */ 
+			// ################# add here get real val ########################
 			symbolTable->LastExpTypeIs = type;
       } |
-      Call {$$.type = $1.type; symbolTable->LastExpTypeIs = $1.type;} |
+      Call 
+	  {		
+			$$.type = $1.type;
+			$$.numVal = $1.numVal;
+			$$.stringVal = $1.stringVal;
+			$$.boolVal = $1.boolVal;
+			symbolTable->LastExpTypeIs = $1.type;
+		} |
       NUM {$$.type = _INT; $$.numVal = $1.numVal; $$.varName=""; symbolTable->LastExpTypeIs = _INT;} |
       NUM B {$$.type = _BYTE; $$.numVal = $1.numVal; $$.varName=""; 
 			if($1.numVal >= MAXBYTE)
@@ -436,26 +448,15 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
       } |
       Exp RELOP Exp
       {
-			varType out1;
-                if(!symbolTable->GetVar($1.varName,out1))
-                {
-                    out1 = $1.type;
-					//output::errorDef(yylineno,$1.varName.c_str());
-                    //exit(0);
-                }
-			varType out2;
-                if(!symbolTable->GetVar($3.varName,out2))
-                {
-					out2 = $3.type;
-                    //output::errorDef(yylineno,$3.varName.c_str());
-                    //exit(0);
-                }
-			if(!isNumeric(out1)  || !isNumeric(out2)) /* !areEqualTypes($1.type,$3.type) || ) */
+			varType out1 = $1.type;
+			varType out2 = $3.type;
+			if(!isNumeric(out1)  || !isNumeric(out2))
             {
                 output::errorMismatch(yylineno);
                 exit(0);
             }
             $$.type = _BOOL;
+			$$.boolVal = calcRelOp($1.numVal, $2.relVal, $3.numVal);
 			symbolTable->LastExpTypeIs = _BOOL;
       } |
       Exp BINOP Exp
@@ -473,7 +474,11 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
 	        $$.type = _BYTE;
 			symbolTable->LastExpTypeIs = _BYTE;
 			}
-			
+			if (($2.binVal == _DEV)  && ($3.numVal == 0)){
+				cout << "Error division by zero\n";
+				exit(0); 
+			} 
+			$$.numVal = calcBinOp($1.numVal, $2.binVal, $3.numVal);
       }
     ;
 
