@@ -18,6 +18,7 @@ public:
 	//get a jump location for the next command
 	std::string next();
 
+	int nextInstr();
 	//write command to the buffer, returns its location in the buffer
 	int emit(const std::string &command);
 

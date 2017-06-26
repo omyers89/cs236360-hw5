@@ -1,4 +1,4 @@
-#include "SymbolTable.h"
+#include "SymbolTable.hpp"
 #include "Utils.hpp"
 #include <exception>
 
@@ -432,4 +432,10 @@ void SymbolTable::FlushExpList(int n){
 	}
 	advance(endIt, n);
 	expList.erase(begIt, endIt);
+}
+
+
+int main(){
+
+	return 0;
 }

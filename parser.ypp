@@ -1,10 +1,11 @@
 %{
 	#include "Contracts.hpp"
 	#include "Utils.hpp"
-	#include "SymbolTable.h"
+	#include "mipsUtils.hpp"
+	#include "SymbolTable.hpp"
 	#include <iostream>
 	#include <stdlib.h>
-
+	
 	using namespace std;
 
 	extern int yylex();
@@ -12,6 +13,7 @@
 	void addFunc(STYPE id, STYPE ret);
 	extern int yylineno;
 	SymbolTable* symbolTable;
+	AssGen* AG;
 	bool isAnyFuncDefined;
 %}
 
@@ -424,7 +426,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
             $$.boolVal = !$1.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
       } |
-      Exp AND Exp
+      Exp AND Mbp Exp
       {
             if(!isBoolean($1.type) || !areEqualTypes($1.type,$3.type))
             {
@@ -435,7 +437,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
             $$.boolVal = $1.boolVal && $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
       } |
-      Exp OR Exp
+      Exp OR Mbp Exp
       {
             if(!isBoolean($1.type) || !areEqualTypes($1.type,$3.type))
             {
@@ -522,11 +524,13 @@ KE : {
 V : {symbolTable->IsWhileOrIfIntact = false;}
     ;
 
+Mbp : {$$.instr = CB.nextInstr();} 
 
 %%
 
 int main(){
 	symbolTable = new SymbolTable();
+	AG = new AssGen(symbolTable);
 	isAnyFuncDefined = false;
 	yyparse();
 }

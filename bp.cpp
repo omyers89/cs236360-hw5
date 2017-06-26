@@ -22,6 +22,11 @@ string CodeBuffer::next(){
 	return ret;
 }
 
+
+int CodeBuffer::nextInstr(){
+	return buffer.size();
+}
+
 int CodeBuffer::emit(const string &s){
     buffer.push_back(s);
 	return buffer.size() - 1;

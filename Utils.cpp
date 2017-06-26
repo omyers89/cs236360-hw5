@@ -3,6 +3,7 @@
 //
 
 #include "Utils.hpp"
+//#include "mipsUtils.h"
 
 bool isByte(varType a){
     return a == _BYTE;
@@ -67,6 +68,7 @@ int calcBinOp(int e1, binop bo, int e2){
 	switch (bo)
 	{
 	case _PLUS:
+
 		return e1 + e2;
 	case _MINUS:
 		return e1 - e2;
@@ -102,3 +104,4 @@ bool calcRelOp(bool e1, relop ro, bool e2){
 	}
 
 }
+
