@@ -2,7 +2,6 @@
 	#include "Contracts.hpp"
 	#include "Utils.hpp"
 	#include "mipsUtils.hpp"
-	#include "SymbolTable.hpp"
 	#include <iostream>
 	#include <stdlib.h>
 	
@@ -88,7 +87,8 @@ FormalDecl : Type ID
 Statements : Statement {$$.type = $1.type;} | Statements Statement {$$.type = $2.type;}
     ;
 
-Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();} |
+Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
+											$$.nextList = $2.nextList} |
             Type ID SC
             {
                 if(symbolTable->IsWhileOrIfIntact)
@@ -413,8 +413,17 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
                 }
 			symbolTable->LastExpTypeIs = _BYTE;} |
       STRING {$$.type = _STRING; $$.stringVal = $1.stringVal; $$.varName=""; symbolTable->LastExpTypeIs = _STRING;} |
-      TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; $$.varName=""; symbolTable->LastExpTypeIs = _BOOL;} |
-      FALSE {$$.type = _BOOL; $$.boolVal = $1.boolVal; $$.varName=""; symbolTable->LastExpTypeIs = _BOOL;} |
+      TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; 
+			$$.varName=""; 
+			symbolTable->LastExpTypeIs = _BOOL;
+			AG->emitTrue($$);
+			} |
+      FALSE {$$.type = _BOOL; 
+			$$.boolVal = $1.boolVal; 
+			$$.varName=""; 
+			symbolTable->LastExpTypeIs = _BOOL;
+			AG->emitFalse($$);
+			} |
       NOT Exp
       {
 	  		varType out1 = $2.type;
@@ -531,7 +540,11 @@ KE : {
 V : {symbolTable->IsWhileOrIfIntact = false;}
     ;
 
-Mbp : {$$.instr = CB.nextInstr();} 
+Mbp : {AG->addNextInstr($$)}
+		;
+
+Nbp : {AG->emitNbp($$);} 
+		;
 
 %%
 
