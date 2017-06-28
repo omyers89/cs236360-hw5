@@ -108,7 +108,6 @@ public:
 		ostringstream t;
 		if (!(emitLoadSTYPEtoReg(v1, reg1) && emitLoadSTYPEtoReg(v2, reg2))){
 			return -1;
-
 		}
 		t << sop << " " << resReg << ", " << reg1 << ", " /*<< hsould add label with BP*/;
 		return emit(t.str());

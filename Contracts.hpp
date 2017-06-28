@@ -50,8 +50,8 @@ typedef struct {
 #define LIBPRINT "print"
 #define LIBPRINTI "printi"
 #define MAIN "main"
-#define TRUE 1
-#define FALSE 0
+#define TRUE_VAL 1
+#define FALSE_VAL 0
 #define J "j"
 #define JAL "jal"
 #define CB (CodeBuffer::instance())

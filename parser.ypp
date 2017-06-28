@@ -96,8 +96,10 @@ Statements : Statement
 			}
     ;
 
-Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
-											$$.nextList = $2.nextList} |
+Statement : V LBRACE M Statements RBRACE {
+					symbolTable->EndScope();
+					$$.nextList = $2.nextList;
+					} |
             Type ID SC
             {
                 if(symbolTable->IsWhileOrIfIntact)
@@ -461,7 +463,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
             $$.type = $1.type;
             $$.boolVal = $1.boolVal && $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
-			AG->bpAnd($$, $1, $4);
+			AG->bpAnd($$, $1,$3, $4);
       } |
       Exp OR Mbp Exp
       {
@@ -473,7 +475,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
             $$.type = $1.type;
             $$.boolVal = $1.boolVal || $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
-			AG->bpOr($$, $1, $4);
+			AG->bpOr($$, $1, $3, $4);
       
 	  } |
       Exp RELOP Exp
@@ -566,7 +568,7 @@ CKE : {
 V : {symbolTable->IsWhileOrIfIntact = false;}
     ;
 
-Mbp : {AG->addNextInstr($$)}
+Mbp : {AG->addNextInstr($$);}
 		;
 
 Nbp : {AG->emitNbp($$);} 
