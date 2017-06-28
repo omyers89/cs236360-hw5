@@ -1,7 +1,7 @@
 #ifndef _TABLES_H_
 #define _TABLES_H_
 
-#include <tchar.h>
+
 #include <map>
 #include <list>
 #include <stack>

@@ -84,7 +84,16 @@ FormalDecl : Type ID
              }
     ;
 
-Statements : Statement {$$.type = $1.type;} | Statements Statement {$$.type = $2.type;}
+Statements : Statement 
+			{
+				$$.type = $1.type;
+				AG->bpStmnt($$, $1);
+			} | 
+			Statements Mbp Statement 
+			{
+				$$.type = $2.type;
+				AG->bpStmntList($$, $1, $2, $3);
+			}
     ;
 
 Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
@@ -215,11 +224,11 @@ Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
                 $$.type = $6.type;
+				AG->bpIf($$, $3, $5, $6);
+
             } |
-            IF LPAREN Exp RPAREN K Statement ELSE KE Statement
+            IF LPAREN Exp RPAREN K Statement ELSE Nbp KE Statement
             {
-			/*cout << "IF LPAREN Exp RPAREN K Statement ELSE K : " << endl;
-			cout << "Exp type is: " << $3.type << endl; */
                 if(!isBoolean($3.type))
                 {
                     output::errorMismatch(yylineno);
@@ -231,8 +240,9 @@ Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
                 $$.type = $9.type;
+				AG->bpIfElse($$, $3, $5, $6, $8, $9, $10);
             } |
-            WHILE LPAREN Exp RPAREN W Statement
+            WHILE Mbp LPAREN Exp RPAREN W Statement
             {
                 if(!isBoolean($3.type))
                 {
@@ -245,9 +255,11 @@ Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
                     symbolTable->EndScope();
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
+				AG->emitWhile($$, $2, $4,  $6, $7);
             } |
             BREAK SC
             {
+			// TODO: Add Logic to this!!!!!!!!!!!!!!
                 if(symbolTable->WhileCount <= 0)
                 {
                     output::errorUnexpectedBreak(yylineno);
@@ -267,7 +279,7 @@ Statement : V LBRACE M Statements RBRACE {symbolTable->EndScope();
 CaseList : CaseStat CaseList | CaseStat
     ;
 
-CaseStat : CASE NUM COLON KE Statement BREAK SC 
+CaseStat : CASE NUM COLON CKE Statement BREAK SC 
 			{
 			if(symbolTable->IsWhileOrIfScopeOpened)
                 {
@@ -275,7 +287,7 @@ CaseStat : CASE NUM COLON KE Statement BREAK SC
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
 			}|
-           CASE NUM B COLON KE Statement BREAK SC
+           CASE NUM B COLON CKE Statement BREAK SC
 		   {
 			if(symbolTable->IsWhileOrIfScopeOpened)
                 {
@@ -375,7 +387,7 @@ Type : INT {$$.type = _INT;} | BYTE {$$.type = _BYTE;} | BOOL {$$.type = _BOOL;}
 
 Exp : LPAREN Exp RPAREN {$$.type = $2.type; 
 						symbolTable->LastExpTypeIs = $2.type;  
-						AG->bpParen($$, $2)
+						AG->bpParen($$, $2);
 						} |
       ID
       {
@@ -512,6 +524,7 @@ W : {
 		output::errorMismatch(yylineno);
         exit(0);
 	}
+	AG->addNextInstr($$);
     }
     ;
 
@@ -519,7 +532,9 @@ K : { symbolTable->IsWhileOrIfIntact = true;
 		if ( !(symbolTable->LastExpTypeIs == _BOOL)){
 		output::errorMismatch(yylineno);
         exit(0);
-	}}
+	}
+	AG->addNextInstr($$);
+	}
     ;
 
 KS : { 
@@ -534,7 +549,18 @@ KE : {
                     symbolTable->EndScope();
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
-		 symbolTable->IsWhileOrIfIntact = true; }
+		 symbolTable->IsWhileOrIfIntact = true;
+		AG->addNextInstr($$);
+	}
+    ;
+CKE : {
+		if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+		 symbolTable->IsWhileOrIfIntact = true;
+	}
     ;
 
 V : {symbolTable->IsWhileOrIfIntact = false;}
