@@ -373,7 +373,10 @@ Type : INT {$$.type = _INT;} | BYTE {$$.type = _BYTE;} | BOOL {$$.type = _BOOL;}
 
     ;
 
-Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type; } |
+Exp : LPAREN Exp RPAREN {$$.type = $2.type; 
+						symbolTable->LastExpTypeIs = $2.type;  
+						AG->bpParen($$, $2)
+						} |
       ID
       {
             varType type;
@@ -425,6 +428,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
             $$.type = _BOOL;
             $$.boolVal = !$1.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
+			AG->bpNot($$, $2);
       } |
       Exp AND Mbp Exp
       {
@@ -436,6 +440,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
             $$.type = $1.type;
             $$.boolVal = $1.boolVal && $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
+			AG->bpAnd($$, $1, $4);
       } |
       Exp OR Mbp Exp
       {
@@ -447,7 +452,9 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; symbolTable->LastExpTypeIs = $2.type
             $$.type = $1.type;
             $$.boolVal = $1.boolVal || $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
-      } |
+			AG->bpOr($$, $1, $4);
+      
+	  } |
       Exp RELOP Exp
       {
 			varType out1 = $1.type;
