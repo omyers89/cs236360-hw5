@@ -82,6 +82,7 @@ int calcBinOp(int e1, binop bo, int e2){
 	}
 
 }
+
 bool calcRelOp(bool e1, relop ro, bool e2){
 
 	switch (ro)
