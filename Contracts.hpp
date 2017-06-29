@@ -40,6 +40,7 @@ typedef struct {
 	vector<int> breakList;
 	int quad;
 	string instr;
+	string alocatedRegister;
 
 }STYPE;
 

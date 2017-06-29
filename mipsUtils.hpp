@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include "bp.hpp"
-
+#include "RegisterStore.hpp"
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
 
@@ -14,6 +14,7 @@ class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
+	RegisterStore* rs;
 	int emit(string s){
 		return CodeBuffer::instance().emit(s);
 	}
@@ -29,26 +30,21 @@ private:
 	}
 
 public:
-	AssGen(SymbolTable* nst) :tempIndexCounter(0){
+	AssGen(SymbolTable* nst, RegisterStore* nrs) :tempIndexCounter(0){
 		st = nst;
+		rs = nrs;
 	}
 
-	string newTempReg(){
-		tempIndexCounter = tempIndexCounter % 10;
-		ostringstream t;
-		t << "$t" << tempIndexCounter++;
-		return t.str();
+	string getTempReg(){
+		return rs->GetRegister();
 	}
 
 
-	bool freeTempReg(int n = 1){
-		tempIndexCounter -= n;
-		if (tempIndexCounter < 0){
-			throw new exception();
-		}
+	void freeTempReg(string regName){
+		rs->ReturnRegister(regName);
 	}
 
-	int emitPrintI(string id){ 
+	int emitPrintI(){ 
 		emit("lw $a0, 0($sp)");
 		emit("li $v0, 1");
 		emit("syscall");
@@ -56,7 +52,7 @@ public:
 	}
 
 
-	int emitPrint(string id){ 
+	int emitPrint(){ 
 		emit("lw $a0, 0($sp)");
 		emit("li $v0, 4");
 		emit("syscall");
@@ -66,10 +62,10 @@ public:
 
 	bool emitLoadSTYPEtoReg(STYPE v1, string &curReg){
 		int ofst;
-		curReg = newTempReg();
+		curReg = getTempReg();
 		ostringstream t;
 		if (v1.varName == ""){
-			t << "li " << curReg << ", " << v1.numVal << "($sp)";
+			t << "li " << curReg << ", " << v1.numVal;
 			emit(t.str());
 			return true;
 		}
@@ -103,7 +99,7 @@ public:
 	int emitBin(STYPE &VV, STYPE &v1, STYPE &v2, binop op) {
 		string reg1;
 		string reg2;
-		string resReg = newTempReg();
+		string resReg = getTempReg();
 		string sop = getBinOp(op);
 		ostringstream t;
 		if (!(emitLoadSTYPEtoReg(v1, reg1) && emitLoadSTYPEtoReg(v2, reg2))){
@@ -116,7 +112,7 @@ public:
 	}
 
 	int emitBin(string reg1, string reg2, string sop) {
-		string resReg = newTempReg();
+		string resReg = getTempReg();
 		//string sop = getBinOp(op);
 		ostringstream t;
 		t << sop << " " << resReg << ", " << reg1 << ", " << reg2;
@@ -146,21 +142,22 @@ public:
 
 	}
 
-	int emitRelopEval(STYPE &VV, STYPE &v1, STYPE &v2, relop op) {
-		string reg1;
-		string reg2;
+	int emitRelopEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2) {
+		string reg1 = v1.alocatedRegister;
+		string reg2 = v2.alocatedRegister;
 		string target = ""; //empty target for later backpatching
 		string branchCond = egtRelOpBranch(op);
 		ostringstream t;
-		if (emitLoadSTYPEtoReg(v1, reg1) && emitLoadSTYPEtoReg(v2, reg2)){ //change to just get new reg.
-			VV.trueList = CB.makelist(nextInstr());
-			VV.falseList = CB.makelist(nextInstr() + 1);
-			t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
-			emit(t.str());
-			return emit(J);
-		}
-		return -1;
+		VV.trueList = CB.makelist(nextInstr());
+		VV.falseList = CB.makelist(nextInstr() + 1);
+		t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
+		emit(t.str());
 
+		rs->ReturnRegister(reg1);
+		rs->ReturnRegister(reg2);
+
+
+		return emit(J);
 	}
 
 	//int emitBoolEval(string reg1, string reg2, string sop) {
