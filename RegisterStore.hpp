@@ -7,7 +7,7 @@
 #include <exception>
 #include <stdlib.h>
 #include <set>
-
+#include <sstream>
 
 #define STYPE_REG_MAX 7
 #define TTYPE_REG_MAX 9

@@ -41,7 +41,7 @@ Program	: Funcs
                 output::errorMainMissing();
                 exit(0);
             }
-            
+            AG->printAssembly();
           }
 	;
 
