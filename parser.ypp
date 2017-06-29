@@ -416,16 +416,29 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
 			$$.boolVal = $1.boolVal;
 			symbolTable->LastExpTypeIs = $1.type;
 		} |
-      NUM {$$.type = _INT; $$.numVal = $1.numVal; $$.varName=""; symbolTable->LastExpTypeIs = _INT;} |
-      NUM B {$$.type = _BYTE; $$.numVal = $1.numVal; $$.varName=""; 
+      NUM
+      {
+            $$.type = _INT;
+            $$.numVal = $1.numVal;
+            $$.varName="";
+            symbolTable->LastExpTypeIs = _INT;
+            AG->emitLoadNumToReg($1,$$);
+      } |
+      NUM B
+      {
+            $$.type = _BYTE;
+            $$.numVal = $1.numVal;
+            $$.varName="";
 			if($1.numVal >= MAXBYTE)
-                {
-                    char* str = toString($1.numVal); //TODO: try to find a better intToString
-                    output::errorByteTooLarge(yylineno,str);
-                    free(str); //TODO: i'm crying
-                    exit(0);
-                }
-			symbolTable->LastExpTypeIs = _BYTE;} |
+            {
+                char* str = toString($1.numVal); //TODO: try to find a better intToString
+                output::errorByteTooLarge(yylineno,str);
+                free(str); //TODO: i'm crying
+                exit(0);
+            }
+			symbolTable->LastExpTypeIs = _BYTE;
+			AG->emitLoadNumToReg($1,$$);
+      } |
       STRING {$$.type = _STRING; $$.stringVal = $1.stringVal; $$.varName=""; symbolTable->LastExpTypeIs = _STRING;} |
       TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; 
 			$$.varName=""; 

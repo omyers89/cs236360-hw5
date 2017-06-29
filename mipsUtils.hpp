@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include "bp.hpp"
+#include "RegisterStore.hpp"
 
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
@@ -14,6 +15,7 @@ class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
+	RegisterStore* rs;
 	int emit(string s){
 		return CodeBuffer::instance().emit(s);
 	}
@@ -31,6 +33,7 @@ private:
 public:
 	AssGen(SymbolTable* nst) :tempIndexCounter(0){
 		st = nst;
+		rs = new RegisterStore();
 	}
 
 	string newTempReg(){
@@ -63,7 +66,19 @@ public:
 		return emit("jr $ra");
 	}
 
+	void emitLoadNumToReg(STYPE &v1, STYPE &parent){
+		ostringstream t;
+		if(rs->NumberOfAvailableRegisters() == 0)
+		{
+			cout << "error no more registers" << endl; //TODO:[TIO]<-[Noam] don't forget to insert valid ouput msg
+		}
+		string freshReg = rs->GetRegister();
+		t << "li " << freshReg << ", " << v1.numVal;
+		emit(t.str());
+		v1.regName = parent.regName = freshReg;
+	}
 
+	/*
 	bool emitLoadSTYPEtoReg(STYPE v1, string &curReg){
 		int ofst;
 		curReg = newTempReg();
@@ -81,7 +96,7 @@ public:
 			}
 		}
 		return false;
-	}
+	}*/
 
 	string getBinOp(binop bo){
 		switch (bo)

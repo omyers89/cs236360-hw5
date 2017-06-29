@@ -25,6 +25,7 @@ typedef struct{
 } varList;
 
 typedef struct {
+	string regName;
     int numVal;
     string stringVal;
     bool boolVal;
