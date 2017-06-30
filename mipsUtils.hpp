@@ -2,10 +2,6 @@
 #define _MIPS_UTILS_H
 
 #include "SymbolTable.hpp"
-#include <iostream>
-#include <sstream>
-#include "bp.hpp"
-#include "RegisterStore.hpp"
 
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
@@ -15,221 +11,40 @@ class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
-	RegisterStore* rs;
-	int emit(string s){
-		return CodeBuffer::instance().emit(s);
-	}
-	string next(){
-		return CodeBuffer::instance().next();
-	}
-	int nextInstr(){
-		return CB.nextInstr();
-	}
+	
+	int emit(string s);
+	string next();
+	int nextInstr();
 
-	void backPatch(const std::vector<int>& address_list, const std::string &loc){
-		CB.bpatch( address_list,  loc);
-	}
+	void backPatch(const std::vector<int>& address_list, const std::string &loc);
 
 public:
-	AssGen(SymbolTable* nst, RegisterStore* nrs) :tempIndexCounter(0){
-		st = nst;
-		rs = nrs;
-	}
+	AssGen(SymbolTable* nst);
 
-	string getTempReg(){
-		return rs->GetRegister();
-	}
-
-
-	void freeTempReg(string regName){
-		rs->ReturnRegister(regName);
-	}
-
-	int emitPrintI(){ 
-		emit("lw $a0, 0($sp)");
-		emit("li $v0, 1");
-		emit("syscall");
-		return emit("jr $ra");
-	}
-
-
-	int emitPrint(){ 
-		emit("lw $a0, 0($sp)");
-		emit("li $v0, 4");
-		emit("syscall");
-		return emit("jr $ra");
-	}
-
-	void emitLoadNumToReg(STYPE &v1, STYPE &parent){
-		ostringstream t;
-		if(RegisterStore::Instance().NumberOfAvailableRegisters() == 0)
-		{
-			cout << "error no more registers" << endl; //TODO:[TIO]<-[Noam] don't forget to insert valid ouput msg
-		}
-		string freshReg = RegisterStore::Instance().GetRegister();
-		t << "li " << freshReg << ", " << v1.numVal;
-		emit(t.str());
-		v1.regName = parent.regName = freshReg;
-	}
-
-	string getBinOp(binop bo){
-		switch (bo)
-		{
-		case _PLUS:
-			return "addu";
-		case _MINUS:
-			return "subu";
-		case _MUL:
-			return "mulo";
-		case _DEV:
-			return "divu";
-
-		default:
-			return "";
-		}
-	}
-
-
-	void emitBin(STYPE &v1, STYPE &v2, STYPE &parent, binop op) {
-		string sop = getBinOp(op);
-		ostringstream t;
-		t << sop << " " << v1.regName << ", " << v1.regName << ", " << v2.regName;
-		emit(t.str());
-		RegisterStore::Instance().ReturnRegister(v2.regName);
-		parent.regName = v1.regName;
-	}
-
-	string egtRelOpBranch(relop ro){
-
-		switch (ro)
-		{
-		case _EQ:
-			return "beq";
-		case _LE:
-			return "ble";
-		case _GE:
-			return "bge";
-		case _LT:
-			return "blt";
-		case _GT:
-			return "bgt";
-		case _NEQ:
-			return "bne";
-
-		default:
-			return "";
-		}
-
-	}
-	/*
-	int emitRelopEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2) {
-		string reg1 = v1.alocatedRegister;
-		string reg2 = v2.alocatedRegister;
-	/*int emitRelopEval(STYPE &VV, STYPE &v1, STYPE &v2, relop op) {
-		string reg1;
-		string reg2;
-		string target = ""; //empty target for later backpatching
-		string branchCond = egtRelOpBranch(op);
-		ostringstream t;
-		VV.trueList = CB.makelist(nextInstr());
-		VV.falseList = CB.makelist(nextInstr() + 1);
-		t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
-		emit(t.str());
-
-		rs->ReturnRegister(reg1);
-		rs->ReturnRegister(reg2);
-
-
-		return emit(J);
-	}
-	}*/
-
-	//int emitBoolEval(string reg1, string reg2, string sop) {
-	//	string resReg = newTempReg();
-	//	//string sop = getBinOp(op);
-	//	ostringstream t;
-	//	t << sop << " " << resReg << ", " << reg1 << ", " << reg2;
-	//	return emit(t.str());
-	//}
-	//
-
-	void printAssembly(){
-		CodeBuffer::instance().printDataBuffer();
-		CodeBuffer::instance().printCodeBuffer();
-	}
-
-	void bpOr(STYPE &VV, STYPE &v1, STYPE &M, STYPE &v2){
-		backPatch(v1.falseList, M.instr);
-		VV.trueList = CodeBuffer::merge(v1.trueList, v2.trueList);
-		VV.falseList = v2.falseList;
-
-	}
-	
-	void bpAnd(STYPE &VV, STYPE &v1, STYPE &M, STYPE &v2){
-		backPatch(v1.trueList, M.instr);
-		VV.trueList = v2.trueList;
-		VV.falseList = CodeBuffer::merge(v1.falseList, v2.falseList);
-	}
-
-	void bpNot(STYPE &VV, STYPE &v1){
-		VV.trueList = v1.falseList;
-		VV.falseList = v1.trueList;
-	}
-
-	void bpParen(STYPE &VV, STYPE &v1){
-		VV.trueList = v1.trueList;
-		VV.falseList = v1.falseList;
-	}
-
-	
-	int emitTrue(STYPE &VV){
-		VV.trueList = CB.makelist(nextInstr());
-		return emit(J);
-	}
-
-	int emitFalse(STYPE &VV){
-		VV.falseList = CB.makelist(nextInstr());
-		return emit(J);
-	}
-
-	void bpIf(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1){
-		backPatch(B.trueList, M1.instr);
-		S.nextList = CodeBuffer::merge(B.falseList, S1.nextList);
-	}
-
-	void bpIfElse(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1, STYPE &N, STYPE &M2, STYPE &S2){
-		backPatch(B.trueList, M1.instr);
-		backPatch(B.falseList, M2.instr);
-		S.nextList = CodeBuffer::merge(CodeBuffer::merge(S1.nextList, N.nextList), S2.nextList);
-	}
-
-	int emitWhile(STYPE &S, STYPE &M1, STYPE &B,  STYPE &M2, STYPE &S1){
-		backPatch(S1.nextList, M1.instr);
-		backPatch(B.trueList, M2.instr);
-		S.nextList = B.falseList;
-		return emit(J + M1.instr);
-	}
-
-	void addNextInstr(STYPE &M){
-		M.instr = CB.next();
-	}
-
-
-	int emitNbp(STYPE &N){
-		N.nextList = CB.makelist(nextInstr());
-		return emit(J);
-	}
-
-	void bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S){
-		backPatch(L1.nextList, M.instr);
-		L.nextList = S.nextList;
-	}
-
-
-	void bpStmnt(STYPE &L, STYPE &S){
-		L.nextList = S.nextList;
-	}
-
+	int emitPrintI();
+	int emitPrint();
+	void emitLoadNumToReg(STYPE &v1, STYPE &parent);
+	void emitLoadIdToReg(STYPE &v1, STYPE &parent);
+	void emitLoadBoolToReg(STYPE &v1, STYPE &parent);
+	string getBinOp(binop bo);
+	void emitBin(STYPE &v1, STYPE &v2, STYPE &parent, binop op);
+	string getRelOpBranch(relop ro);
+	int emitRelopEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2);
+	//int emitBoolEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2);
+	void printAssembly();
+	void bpOr(STYPE &VV, STYPE &v1, STYPE &M, STYPE &v2);
+	void bpAnd(STYPE &VV, STYPE &v1, STYPE &M, STYPE &v2);
+	void bpNot(STYPE &VV, STYPE &v1);
+	void bpParen(STYPE &VV, STYPE &v1);
+	int emitTrue(STYPE &VV);
+	int emitFalse(STYPE &VV);
+	void bpIf(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1);
+	void bpIfElse(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1, STYPE &N, STYPE &M2, STYPE &S2);
+	int emitWhile(STYPE &S, STYPE &M1, STYPE &B, STYPE &M2, STYPE &S1);
+	void addNextInstr(STYPE &M);
+	int emitNbp(STYPE &N);
+	void bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S);
+	void bpStmnt(STYPE &L, STYPE &S);
 };
 
 #endif

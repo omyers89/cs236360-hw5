@@ -83,6 +83,8 @@ private:
 	Tables _tables;
 	Offsets _offsetes;
 	bool GetFunc(string name, IdType &funType, bool &isfunc);
+	bool GetSymbolOfst(string name, IdType &funType, bool &isfunc, int &ofst);
+
 
 public:
 	//bool findVarByName(string name);
@@ -111,6 +113,7 @@ public:
 	bool OpenScope();//make new table, add to tables and update offsets
 	bool AddVar(string name, varType t); //insert at top table (name, tyoe, offset), and update offset
 	bool GetVar(string name, varType& outVarType); //return a reference to the object, or null and false otherwise
+	bool GetVarOfset(string name, varType& outVarData, int &outOfst); //return a reference to the object, or null and false otherwise
 	bool GetVarToAssign(string name, varType& outVarType);
 	void AddToFormalList(string varName, varType type);
 	void AddToExpList(varType type);

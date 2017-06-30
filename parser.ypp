@@ -13,7 +13,6 @@
 	extern int yylineno;
 	SymbolTable* symbolTable;
 	AssGen* AG;
-	RegisterStore* RS;
 	bool isAnyFuncDefined;
 	void handleBinop(STYPE exp1, STYPE binOp, STYPE exp2, STYPE parent);
 %}
@@ -119,11 +118,11 @@ Statement : V LBRACE M Statements RBRACE {
                 }
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
+				//need to add here put var on stack
             } |
             Type ID ASSIGN Exp SC
             {
                 varType outExp = $4.type;
-                //bool resExp = symbolTable->GetVar($4.varName,outExp);
                 if(symbolTable->IsWhileOrIfIntact)
                 {
                     symbolTable->OpenScope();
@@ -154,6 +153,8 @@ Statement : V LBRACE M Statements RBRACE {
                 }
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
+				//need to add here put var on stack
+
             } |
             ID ASSIGN Exp SC
             {
@@ -179,9 +180,15 @@ Statement : V LBRACE M Statements RBRACE {
                     free(str); //TODO: i'm crying
                     exit(0);
                 }
+				//need to add here update var on stack
+
 
             } |
-            Call SC {$$.type = $1.type;} |
+            Call SC {
+				$$.type = $1.type;
+				//need to add here put var on stack ???
+			
+			} |
             RETURN SC
             {
                 if(symbolTable->ReturnType != _VOID)
@@ -209,6 +216,8 @@ Statement : V LBRACE M Statements RBRACE {
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
+				//need to add here put var on stack or in the right register
+
             } |
             IF LPAREN Exp RPAREN K Statement
             {
@@ -402,11 +411,14 @@ Exp : LPAREN Exp RPAREN
             }
             $$.type = type;
             $$.varName = $1.varName;
+
+
 			/* $$.numVal = $1.numVal;
 			$$.stringVal = $1.stringVal;
 			$$.boolVal = $1.boolVal; */
 			// ################# add here get real val ########################
 			symbolTable->LastExpTypeIs = type;
+			AG->emitLoadIdToReg($1, $$);
       } |
       Call 
 	  {		
@@ -445,12 +457,14 @@ Exp : LPAREN Exp RPAREN
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->emitTrue($$);
+			AG->emitLoadBoolToReg($1, $$);
 			} |
       FALSE {$$.type = _BOOL; 
 			$$.boolVal = $1.boolVal; 
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->emitFalse($$);
+			AG->emitLoadBoolToReg($1, $$);
 			} |
       NOT Exp
       {
@@ -503,7 +517,7 @@ Exp : LPAREN Exp RPAREN
             }
             $$.type = _BOOL;
 			$$.boolVal = calcRelOp($1.numVal, $2.relVal, $3.numVal);
-			AG->emitRelopEval($$,$1,$2.relVal, $3);
+			//AG->emitRelopEval($$,$1,$2.relVal, $3);
 			symbolTable->LastExpTypeIs = _BOOL;
       } |
       Exp MULOP Exp {handleBinop($1,$2,$3,$$);} |
@@ -575,12 +589,12 @@ Nbp : {AG->emitNbp($$);}
 
 int main(){
 	symbolTable = new SymbolTable();
-	RS = new RegisterStore();
-	AG = new AssGen(symbolTable, RS);
+	//RS = new RegisterStore();
+	AG = new AssGen(symbolTable);
 	
 	isAnyFuncDefined = false;
 	yyparse();
-	CodeBuffer::instance().printCodeBuffer();
+	//CodeBuffer::instance().printCodeBuffer();
 }
 
 int yyerror(char * message){

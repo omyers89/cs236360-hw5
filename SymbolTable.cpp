@@ -353,6 +353,24 @@ bool SymbolTable::GetFunc(string name, IdType &funType,bool &isfunc){
 	return false;
 }
 
+
+
+bool SymbolTable::GetSymbolOfst(string name, IdType &funType, bool &isfunc, int &ofst){
+	Table* curTable = _tables.top();
+	while (curTable != NULL){
+		TableEntry vd;
+
+		if (curTable->get(name, vd)){
+			funType = vd.t;
+			isfunc = vd.isFunc;
+			ofst = vd.offset;
+			return true;
+		}
+		curTable = curTable->_parentTable;
+	}
+	return false;
+}
+
 bool SymbolTable::OpenScope(){
 	Table* nt = new Table(_tables.top());
 	_tables.push(nt);
@@ -389,6 +407,15 @@ bool SymbolTable::GetVar(string name, varType& outVarType){
 	return ex;
 }
 
+bool SymbolTable::GetVarOfset(string name, varType& outVarData, int &outOfst){
+	IdType idt;
+	bool isfunc;
+	bool ex = GetFunc(name, idt, isfunc);
+	outVarData = idt.retType;
+	//outOfst = idt.
+	return ex;
+
+}
 bool SymbolTable::GetVarToAssign(string name, varType& outVarType){
 	IdType idt;
 	bool isfunc;
