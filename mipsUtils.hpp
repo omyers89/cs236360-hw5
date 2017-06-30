@@ -7,6 +7,7 @@
 #include "bp.hpp"
 #include "RegisterStore.hpp"
 
+
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
 
 
@@ -59,24 +60,16 @@ public:
 		return emit("jr $ra");
 	}
 
-
-	bool emitLoadSTYPEtoReg(STYPE v1, string &curReg){
-		int ofst;
-		curReg = getTempReg();
+	void emitLoadNumToReg(STYPE &v1, STYPE &parent){
 		ostringstream t;
-		if (v1.varName == ""){
-			t << "li " << curReg << ", " << v1.numVal;
-			emit(t.str());
-			return true;
+		if(RegisterStore::Instance().NumberOfAvailableRegisters() == 0)
+		{
+			cout << "error no more registers" << endl; //TODO:[TIO]<-[Noam] don't forget to insert valid ouput msg
 		}
-		else{
-			if (st->GetVar(v1.varName, ofst)){
-				t << "lw " << curReg << ", " << ofst << "($sp)";
-				emit(t.str());
-				return true;
-			}
-		}
-		return false;
+		string freshReg = RegisterStore::Instance().GetRegister();
+		t << "li " << freshReg << ", " << v1.numVal;
+		emit(t.str());
+		v1.regName = parent.regName = freshReg;
 	}
 
 	string getBinOp(binop bo){
@@ -96,27 +89,14 @@ public:
 		}
 	}
 
-	int emitBin(STYPE &VV, STYPE &v1, STYPE &v2, binop op) {
-		string reg1;
-		string reg2;
-		string resReg = getTempReg();
+
+	void emitBin(STYPE &v1, STYPE &v2, STYPE &parent, binop op) {
 		string sop = getBinOp(op);
 		ostringstream t;
-		if (!(emitLoadSTYPEtoReg(v1, reg1) && emitLoadSTYPEtoReg(v2, reg2))){
-			return -1;
-		}
-		t << sop << " " << resReg << ", " << reg1 << ", " /*<< hsould add label with BP*/;
-		return emit(t.str());
-
-	
-	}
-
-	int emitBin(string reg1, string reg2, string sop) {
-		string resReg = getTempReg();
-		//string sop = getBinOp(op);
-		ostringstream t;
-		t << sop << " " << resReg << ", " << reg1 << ", " << reg2;
-		return emit(t.str());
+		t << sop << " " << v1.regName << ", " << v1.regName << ", " << v2.regName;
+		emit(t.str());
+		RegisterStore::Instance().ReturnRegister(v2.regName);
+		parent.regName = v1.regName;
 	}
 
 	string egtRelOpBranch(relop ro){
@@ -141,10 +121,13 @@ public:
 		}
 
 	}
-
+	/*
 	int emitRelopEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2) {
 		string reg1 = v1.alocatedRegister;
 		string reg2 = v2.alocatedRegister;
+	/*int emitRelopEval(STYPE &VV, STYPE &v1, STYPE &v2, relop op) {
+		string reg1;
+		string reg2;
 		string target = ""; //empty target for later backpatching
 		string branchCond = egtRelOpBranch(op);
 		ostringstream t;
@@ -159,6 +142,7 @@ public:
 
 		return emit(J);
 	}
+	}*/
 
 	//int emitBoolEval(string reg1, string reg2, string sop) {
 	//	string resReg = newTempReg();
@@ -169,6 +153,10 @@ public:
 	//}
 	//
 
+	void printAssembly(){
+		CodeBuffer::instance().printDataBuffer();
+		CodeBuffer::instance().printCodeBuffer();
+	}
 
 	void bpOr(STYPE &VV, STYPE &v1, STYPE &M, STYPE &v2){
 		backPatch(v1.falseList, M.instr);

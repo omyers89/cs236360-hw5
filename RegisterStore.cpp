@@ -12,13 +12,24 @@ string convertInt(int number)
 
 
 RegisterStore::RegisterStore() {
-	for(int i=0,j=0;i<=TTYPE_REG_MAX,j<=STYPE_REG_MAX;++i,++j)
+	for(int i = 0; i <= TTYPE_REG_MAX; ++i)
 	{
-		string t_reg = "$t";
-		string s_reg = "$s";
-		_registers.insert(s_reg.append(convertInt(i)));
-		_registers.insert(t_reg.append(convertInt(j)));
+
+		ostringstream s;
+		s << "$t" << i;
+		_registers.insert(s.str());
 	}
+	for (int i = 0; i <= STYPE_REG_MAX; ++i)
+	{
+		ostringstream s;
+		s << "$s" << i;
+		_registers.insert(s.str());
+	}
+}
+
+RegisterStore &RegisterStore::Instance() {
+	static RegisterStore instance;
+	return instance;
 }
 
 string RegisterStore::GetRegister() {
@@ -37,6 +48,7 @@ void RegisterStore::ReturnRegister(string registerName) {
 
 bool RegisterStore::ValidateRegister(string registerName) {
 	if (registerName.size() != 3) return false;
+
 	int regNum = registerName[2] - '0';
 	return registerName[0] == '$' &&
 		   registerName[1] == 's' || registerName[1] == 't' &&

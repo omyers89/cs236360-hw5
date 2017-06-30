@@ -7,6 +7,7 @@
 #include <stack>
 #include <iostream>
 #include "Contracts.hpp"
+
 using namespace std;
 
 typedef enum{ SUCCESS,FAIL, FAIL_ALREADY_DEFINED, NOT_DEFINED, PROTOTYPE_MISMATCH} SymbolTableResult;
@@ -81,9 +82,8 @@ class SymbolTable{
 private:
 	Tables _tables;
 	Offsets _offsetes;
-	
 	bool GetFunc(string name, IdType &funType, bool &isfunc);
-	
+
 public:
 	//bool findVarByName(string name);
 	bool IsMainDefined;
@@ -94,13 +94,12 @@ public:
 	varList formalList;
 	vector<varType> expList;
 	varType ReturnType;
-
-	SymbolTable() :IsMainDefined(false), 
-					WhileCount(0),
-					IsWhileOrIfIntact(false),
-					IsWhileOrIfScopeOpened(false),
-					LastExpTypeIs(_NO_ARGS),
-					ReturnType(_VOID){  };
+	SymbolTable() :IsMainDefined(false),
+								WhileCount(0),
+								IsWhileOrIfIntact(false),
+								IsWhileOrIfScopeOpened(false),
+								LastExpTypeIs(_NO_ARGS),
+								ReturnType(_VOID){}
 	bool EndScope(); //just pop tables and offsets
 	bool EndProg(); //just pop tables and offsets
 	//SymbolTableResult AddFunc(string name, varType retType, varList &argNameTypes);
@@ -112,7 +111,6 @@ public:
 	bool OpenScope();//make new table, add to tables and update offsets
 	bool AddVar(string name, varType t); //insert at top table (name, tyoe, offset), and update offset
 	bool GetVar(string name, varType& outVarType); //return a reference to the object, or null and false otherwise
-	bool GetVar(string name, int& outOffset);
 	bool GetVarToAssign(string name, varType& outVarType);
 	void AddToFormalList(string varName, varType type);
 	void AddToExpList(varType type);

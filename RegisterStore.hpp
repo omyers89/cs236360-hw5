@@ -7,7 +7,7 @@
 #include <exception>
 #include <stdlib.h>
 #include <set>
-
+#include <sstream>
 
 #define STYPE_REG_MAX 7
 #define TTYPE_REG_MAX 9
@@ -17,8 +17,9 @@ using namespace std;
 class RegisterStore {
     set<string> _registers;
     bool ValidateRegister(string registerName);
-public:
     RegisterStore();
+public:
+    static RegisterStore &Instance();
     string GetRegister();
     void ReturnRegister(string registerName);
     int NumberOfAvailableRegisters();
