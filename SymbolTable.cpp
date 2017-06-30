@@ -51,8 +51,6 @@ bool Table::addVar(string name, VarData d, bool isfunc)
 	return true;
 }
 
-
-
 bool Table::contains(string name, TableEntry &vd)
 {
 	if (_variables->size() == 0){
@@ -179,9 +177,7 @@ Table* Tables::get(int i){
 	return *it;
 }
 
-
 bool SymbolTable::EndScope(){
-	//cout << "table stack size is:" << _tables._tableStack.size() << endl;
 	output::endScope();
 	Table* tmpT = _tables.top();
 	if (NULL == tmpT) {
@@ -308,8 +304,6 @@ SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType, stri
 	return SUCCESS;
 }
 
-
-
 bool CompareVecs(vector<varType> &callArgs, vector<varType> &expectedArgs){
 	vector<varType>::iterator it_c = callArgs.begin();
 	vector<varType>::iterator it_e = expectedArgs.begin();
@@ -344,7 +338,7 @@ SymbolTableResult SymbolTable::CallFunc(string name, vector<varType> &expectedAr
 	return NOT_DEFINED;
 }
 
-bool SymbolTable::GetFunc(string name, IdType &funType, bool &isfunc){
+bool SymbolTable::GetFunc(string name, IdType &funType,bool &isfunc){
 	Table* curTable = _tables.top();
 	while (curTable != NULL){
 		TableEntry vd;
@@ -357,9 +351,7 @@ bool SymbolTable::GetFunc(string name, IdType &funType, bool &isfunc){
 		curTable = curTable->_parentTable;
 	}
 	return false;
-
 }
-
 
 bool SymbolTable::OpenScope(){
 	Table* nt = new Table(_tables.top());

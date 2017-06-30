@@ -17,8 +17,9 @@ using namespace std;
 class RegisterStore {
     set<string> _registers;
     bool ValidateRegister(string registerName);
-public:
     RegisterStore();
+public:
+    static RegisterStore &Instance();
     string GetRegister();
     void ReturnRegister(string registerName);
     int NumberOfAvailableRegisters();

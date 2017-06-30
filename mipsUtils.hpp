@@ -15,7 +15,6 @@ class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
-	RegisterStore* rs;
 	int emit(string s){
 		return CodeBuffer::instance().emit(s);
 	}
@@ -33,7 +32,6 @@ private:
 public:
 	AssGen(SymbolTable* nst) :tempIndexCounter(0){
 		st = nst;
-		rs = new RegisterStore();
 	}
 
 	string newTempReg(){
@@ -68,11 +66,11 @@ public:
 
 	void emitLoadNumToReg(STYPE &v1, STYPE &parent){
 		ostringstream t;
-		if(rs->NumberOfAvailableRegisters() == 0)
+		if(RegisterStore::Instance().NumberOfAvailableRegisters() == 0)
 		{
 			cout << "error no more registers" << endl; //TODO:[TIO]<-[Noam] don't forget to insert valid ouput msg
 		}
-		string freshReg = rs->GetRegister();
+		string freshReg = RegisterStore::Instance().GetRegister();
 		t << "li " << freshReg << ", " << v1.numVal;
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
@@ -95,25 +93,13 @@ public:
 		}
 	}
 
-	int emitBin(STYPE &VV, STYPE &v1, STYPE &v2, binop op) {
-		string reg1;
-		string reg2;
-		string resReg = newTempReg();
+	void emitBin(STYPE &v1, STYPE &v2, STYPE &parent, binop op) {
 		string sop = getBinOp(op);
 		ostringstream t;
-
-		t << sop << " " << resReg << ", " << reg1 << ", " /*<< hsould add label with BP*/;
-		return emit(t.str());
-
-	
-	}
-
-	int emitBin(string reg1, string reg2, string sop) {
-		string resReg = newTempReg();
-		//string sop = getBinOp(op);
-		ostringstream t;
-		t << sop << " " << resReg << ", " << reg1 << ", " << reg2;
-		return emit(t.str());
+		t << sop << " " << v1.regName << ", " << v1.regName << ", " << v2.regName;
+		emit(t.str());
+		RegisterStore::Instance().ReturnRegister(v2.regName);
+		parent.regName = v1.regName;
 	}
 
 	string egtRelOpBranch(relop ro){

@@ -58,5 +58,4 @@ typedef struct {
 #define CB (CodeBuffer::instance())
 
 
-
 #endif

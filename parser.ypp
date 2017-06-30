@@ -128,14 +128,14 @@ Statement : V LBRACE M Statements RBRACE {
                 }
                 symbolTable->IsWhileOrIfIntact = false;
                 
-                    if(!areEqualTypes($1.type,outExp))
-                    {
-                        output::errorMismatch(yylineno);
-                        exit(0);
-                    }
-              
+                if(!areEqualTypes($1.type,outExp))
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
 
                 varType out;
+                string regName;
                 if(symbolTable->GetVar($2.varName,out))
                 {
                     output::errorDef(yylineno,$2.varName.c_str());
@@ -155,8 +155,6 @@ Statement : V LBRACE M Statements RBRACE {
             ID ASSIGN Exp SC
             {
                 varType outId;
-                varType outExp= $3.type;
-                //bool resExp = symbolTable->GetVar($3.varName,outExp);
                 bool resId = symbolTable->GetVarToAssign($1.varName,outId);
                 if(!resId)
                 {
@@ -164,14 +162,14 @@ Statement : V LBRACE M Statements RBRACE {
                     exit(0);
                 }
                 
-                    bool intAndByte = (areEqualTypes(outId,outExp));
-                    if(!intAndByte)
-                    {
-                        output::errorMismatch(yylineno);
-                        exit(0);
-                    }
+                bool intAndByte = (areEqualTypes(outId,$3.type));
+                if(!intAndByte)
+                {
+                    output::errorMismatch(yylineno);
+                    exit(0);
+                }
                
-                if(isByte(outId) && isNumeric(outExp) && $3.numVal >= MAXBYTE)
+                if(isByte(outId) && isNumeric($3.type) && $3.numVal >= MAXBYTE)
                 {
                     char* str = toString($4.numVal); //TODO: try to find a better intToString
                     output::errorByteTooLarge(yylineno,str);
@@ -183,8 +181,6 @@ Statement : V LBRACE M Statements RBRACE {
             Call SC {$$.type = $1.type;} |
             RETURN SC
             {
-			//cout << "in RETURN  SC:" << endl;
-				
                 if(symbolTable->ReturnType != _VOID)
                 {
                     output::errorMismatch(yylineno);
@@ -213,8 +209,6 @@ Statement : V LBRACE M Statements RBRACE {
             } |
             IF LPAREN Exp RPAREN K Statement
             {
-			/*cout << "IF LPAREN Exp RPAREN K Statement: " << endl;
-			cout << "Exp type is: " << $3.type << endl; */
                 if(!isBoolean($3.type))
                 {
                     output::errorMismatch(yylineno);
@@ -343,7 +337,7 @@ Call : ID LPAREN ExpList RPAREN
                     output::errorUndefFunc(yylineno,$1.varName.c_str());
                     exit(0);
                 }
-				//std::cout << "expected is:" << retType << std::endl; 
+
                 $$.type = retType;
 				$1.type = retType;
 
@@ -387,10 +381,13 @@ Type : INT {$$.type = _INT;} | BYTE {$$.type = _BYTE;} | BOOL {$$.type = _BOOL;}
 
     ;
 
-Exp : LPAREN Exp RPAREN {$$.type = $2.type; 
-						symbolTable->LastExpTypeIs = $2.type;  
-						AG->bpParen($$, $2);
-						} |
+Exp : LPAREN Exp RPAREN
+      {
+            $$.type = $2.type;
+            symbolTable->LastExpTypeIs = $2.type;
+            $$.regName = $2.regName;
+            AG->bpParen($$, $2);
+      } |
       ID
       {
             varType type;
@@ -404,7 +401,7 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
             $$.varName = $1.varName;
 			/* $$.numVal = $1.numVal;
 			$$.stringVal = $1.stringVal;
-			$$.boolVal = $1.boolVal; */ 
+			$$.boolVal = $1.boolVal; */
 			// ################# add here get real val ########################
 			symbolTable->LastExpTypeIs = type;
       } |
@@ -415,14 +412,14 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
 			$$.stringVal = $1.stringVal;
 			$$.boolVal = $1.boolVal;
 			symbolTable->LastExpTypeIs = $1.type;
-		} |
+	  } |
       NUM
       {
             $$.type = _INT;
             $$.numVal = $1.numVal;
             $$.varName="";
             symbolTable->LastExpTypeIs = _INT;
-            AG->emitLoadNumToReg($1,$$);
+            AG->emitLoadNumToReg($1,$$); //Also adds the regName to the parent
       } |
       NUM B
       {
@@ -506,6 +503,8 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
       } |
       Exp BINOP Exp
       {
+            //AT THIS POINT I EXPECT BOTH EXP's TO HAVE NUMVAL!!!
+
 	        if(!isNumeric($1.type) || !isNumeric($3.type))
 	        {
 	            output::errorMismatch(yylineno);
@@ -522,8 +521,8 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;
 			if (($2.binVal == _DEV)  && ($3.numVal == 0)){
 				cout << "Error division by zero\n";
 				exit(0); 
-			} 
-			$$.numVal = calcBinOp($1.numVal, $2.binVal, $3.numVal);
+			}
+            AG->emitBin($1,$3,$$,$2.binVal)
       }
     ;
 

@@ -15,6 +15,11 @@ RegisterStore::RegisterStore() {
 	}
 }
 
+RegisterStore &RegisterStore::Instance() {
+	static RegisterStore instance;
+	return instance;
+}
+
 string RegisterStore::GetRegister() {
 	if(_registers.empty())
 		throw new EmptyStoreException();
