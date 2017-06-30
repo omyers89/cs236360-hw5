@@ -14,6 +14,7 @@
 	SymbolTable* symbolTable;
 	AssGen* AG;
 	bool isAnyFuncDefined;
+	void handleBinop(STYPE exp1, STYPE binOp, STYPE exp2, STYPE parent);
 %}
 
 %token VOID INT BYTE B BOOL STRINGTYPE TRUE FALSE RETURN IF WHILE SWITCH CASE BREAK COLON SC COMMA LPAREN LBRACE RBRACE ID NUM STRING EOFF
@@ -25,7 +26,8 @@
 %left OR
 %left AND
 %left RELOP
-%left BINOP
+%left SUMOP
+%left MULOP
 %right NOT
 
 %%
@@ -501,29 +503,9 @@ Exp : LPAREN Exp RPAREN
 			$$.boolVal = calcRelOp($1.numVal, $2.relVal, $3.numVal);
 			symbolTable->LastExpTypeIs = _BOOL;
       } |
-      Exp BINOP Exp
-      {
-            //AT THIS POINT I EXPECT BOTH EXP's TO HAVE NUMVAL!!!
+      Exp MULOP Exp {handleBinop($1,$2,$3,$$);} |
 
-	        if(!isNumeric($1.type) || !isNumeric($3.type))
-	        {
-	            output::errorMismatch(yylineno);
-	            exit(0);
-	        }
-			if (isInt($1.type) || isInt($3.type)){
-			$$.type = _INT;
-			symbolTable->LastExpTypeIs = _INT;
-			}
-			else{
-	        $$.type = _BYTE;
-			symbolTable->LastExpTypeIs = _BYTE;
-			}
-			if (($2.binVal == _DEV)  && ($3.numVal == 0)){
-				cout << "Error division by zero\n";
-				exit(0); 
-			}
-            AG->emitBin($1,$3,$$,$2.binVal)
-      }
+      Exp SUMOP Exp {handleBinop($1,$2,$3,$$);}
     ;
 
 M : { symbolTable->OpenScope();}
@@ -600,6 +582,28 @@ int yyerror(char * message){
 	exit(0);
 }
 
+void handleBinop(STYPE exp1, STYPE binOp, STYPE exp2, STYPE parent){
+    if(!isNumeric(exp1.type) || !isNumeric(exp2.type))
+    {
+        output::errorMismatch(yylineno);
+        exit(0);
+    }
+    if (isInt(exp1.type) || isInt(exp2.type))
+    {
+        parent.type = _INT;
+        symbolTable->LastExpTypeIs = _INT;
+    }
+    else
+    {
+        parent.type = _BYTE;
+        symbolTable->LastExpTypeIs = _BYTE;
+    }
+    if ((binOp.binVal == _DEV)  && (exp2.numVal == 0)){
+        cout << "Error division by zero\n";
+        exit(0);
+    }
+    AG->emitBin(exp1,exp2,parent,binOp.binVal);
+}
 
 void checkBool(varType vt){
 	if (vt != _BOOL){

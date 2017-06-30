@@ -117,10 +117,10 @@ asciiTrailer    ({digit}{digit}{digit}{digit})
 \>                         {    showToken("RELOP");   yylval.relVal= _GT;  return  RELOP;}
 \<\=                       {    showToken("RELOP");   yylval.relVal= _LE;  return  RELOP;}
 [>][=]                     {    showToken("RELOP");   yylval.relVal= _GE;  return  RELOP;}
-[+]                        {    showToken("BINOP");   yylval.binVal= _PLUS;  return   BINOP;}
-[-]                        {    showToken("BINOP");   yylval.binVal= _MINUS;  return  BINOP;}
-[*]                        {    showToken("BINOP");   yylval.binVal= _MUL;  return  BINOP;}
-[/]                        {    showToken("BINOP");   yylval.binVal= _DEV;    return  BINOP;}
+[+]                        {    showToken("SUMOP");   yylval.binVal= _PLUS;  return   SUMOP;}
+[-]                        {    showToken("SUMOP");   yylval.binVal= _MINUS;  return  SUMOP;}
+[*]                        {    showToken("MULOP");   yylval.binVal= _MUL;  return  MULOP;}
+[/]                        {    showToken("MULOP");   yylval.binVal= _DEV;    return  MULOP;}
 null                       {    showToken("NULL");      return NULL;}
 "0"                        {
                                 showToken("NUM");
