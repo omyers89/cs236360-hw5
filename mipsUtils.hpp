@@ -48,6 +48,8 @@ public:
 	void emitPushLocal();
 	void emitPushInitializedLocal(STYPE &V);
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
+	void emitReturnNonVoid(STYPE &V);
+	void emitReturnVoid();
 };
 
 #endif

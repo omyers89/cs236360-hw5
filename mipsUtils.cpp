@@ -98,6 +98,20 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		emit(t.str());
 	}
 
+	void AssGen::emitReturnNonVoid(STYPE &V) {
+		ostringstream t;
+		t << "move $v0, " << V.regName;
+		RegisterStore::Instance().ReturnRegister(V.regName);
+		emit(t.str());
+		emitReturnVoid();
+	}
+
+	void AssGen::emitReturnVoid() {
+		ostringstream t;
+		t << "move $sp, $fp";
+		emit(t.str());
+	}
+
 	void AssGen::emitLoadBoolToReg(STYPE &v1, STYPE &parent){
 		ostringstream t;
 		if (RegisterStore::Instance().NumberOfAvailableRegisters() == 0)

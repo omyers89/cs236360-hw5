@@ -193,28 +193,21 @@ Statement : V LBRACE M Statements RBRACE
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
+                AG->emitReturnVoid();
             } |
             RETURN Exp SC
             {
                 varType outType;
                 bool resExp = symbolTable->GetVar($2.varName,outType);
 
-				/* cout << "in RETURN Exp SC:" << endl;
-				if (resExp){
-				cout << "found varName: " << $2.varName << endl;
-				cout << "out Type is: " << outType << endl;
-				cout << "st-> returntype is: " << symbolTable->ReturnType << endl;
-				} 
-				 cout << "st-> returntype is: " << symbolTable->ReturnType << endl; */
-                if((symbolTable->ReturnType == _VOID) 
+                if((symbolTable->ReturnType == _VOID)
 				|| (resExp && !areEqualTypes(symbolTable->ReturnType, outType)) 
 				|| ((!resExp) && !areEqualTypes(symbolTable->ReturnType, $2.type)))
                 {
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
-				//need to add here put var on stack or in the right register
-
+                AG->emitReturnNonVoid($2);
             } |
             IF LPAREN Exp RPAREN K Statement
             {
