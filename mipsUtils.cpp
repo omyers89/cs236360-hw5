@@ -87,8 +87,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		ostringstream t;
 		emitPushLocal();
 		t << "sw " << V.regName << " ,($sp)";
-		std::cout << "in emitPushInitializedLocal 1 befor return register : " << V.regName << std::endl;
-		std::cout << "emitPushInitializedLocal V is:" << V.varName << V.binVal << V.numVal << V.boolVal << V.stringVal;
+		//std::cout << "in emitPushInitializedLocal 1 befor return register : " << V.regName << std::endl;
+		//std::cout << "emitPushInitializedLocal V is:" << V.varName << V.binVal << V.numVal << V.boolVal << V.stringVal;
 
 		RegisterStore::Instance().ReturnRegister(V.regName);
 		emit(t.str());
@@ -142,7 +142,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		t << sop << " " << v1.regName << ", " << v1.regName << ", " << v2.regName;
 		emit(t.str());
 
-		std::cout << "in emeit bin befor return register : " << v2.regName << std::endl;
+		//std::cout << "in emeit bin befor return register : " << v2.regName << std::endl;
 
 		RegisterStore::Instance().ReturnRegister(v2.regName);
 		parent.regName = v1.regName;
@@ -311,17 +311,19 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		// *** ignored for now...
 		//old frame pointer
 		emit("addu $sp,$sp, 4");
-		emit("sw $fp, 0($sp)"); //save old sp
+		emit("sw $fp, 0($sp)"); //save old fp
 		
 		//return address
 		emit("addu $sp,$sp, 4");
 		emit("sw $ra, 0($sp)"); //store return address
 		//Arguments
 		emitStoreArguments(numCallArgs); //put all arguments on stack
-		emit("li $fp, 0($sp)"); //load the current sp value to fp
+		emit("lw $fp, 0($sp)"); //load the current sp value to fp
 		ostringstream t;
 		t << "j " << I1.varName;
 		emit(t.str());
+
+		//addd reallease of registers in the end of call
 	}
 
 	void AssGen::emitFuncLable(string funcName){
