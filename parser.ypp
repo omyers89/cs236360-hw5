@@ -98,10 +98,11 @@ Statements : Statement
 			}
     ;
 
-Statement : V LBRACE M Statements RBRACE {
-					symbolTable->EndScope();
-					$$.nextList = $2.nextList;
-					} |
+Statement : V LBRACE M Statements RBRACE
+            {
+                symbolTable->EndScope();
+                $$.nextList = $2.nextList;
+            } |
             Type ID SC
             {
                 if(symbolTable->IsWhileOrIfIntact)
