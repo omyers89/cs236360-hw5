@@ -12,7 +12,7 @@ private:
 	int tempIndexCounter;
 	SymbolTable* st;
 	
-	int emit(string s);
+	
 	string next();
 	int nextInstr();
 
@@ -20,7 +20,7 @@ private:
 
 public:
 	AssGen(SymbolTable* nst);
-
+	int emit(string s);
 	int emitPrintI();
 	int emitPrint();
 	void emitLoadNumToReg(STYPE &v1, STYPE &parent);
@@ -45,6 +45,8 @@ public:
 	int emitNbp(STYPE &N);
 	void bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S);
 	void bpStmnt(STYPE &L, STYPE &S);
+	void emitStoreArguments(int numCallArgs);
+	void emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs);
 };
 
 #endif

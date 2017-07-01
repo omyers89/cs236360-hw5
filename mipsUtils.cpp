@@ -33,6 +33,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 
 	int AssGen::emitPrintI(){
+		emit("printi:");
 		emit("lw $a0, 0($sp)");
 		emit("li $v0, 1");
 		emit("syscall");
@@ -41,6 +42,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 
 	int AssGen::emitPrint(){
+		emit("print:");
 		emit("lw $a0, 0($sp)");
 		emit("li $v0, 4");
 		emit("syscall");
@@ -251,6 +253,31 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::bpStmnt(STYPE &L, STYPE &S){
 		L.nextList = S.nextList;
+	}
+
+	void AssGen::emitStoreArguments(int numCallArgs){
+
+
+	}
+
+	void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
+		//save registers
+		// *** ignored for now...
+		//old frame pointer
+		emit("sw $fp, 0($sp)");
+		emit("addu $sp,$sp, 4");
+		//return address
+		emit("sw $ra, 0($sp)");
+		emit("addu $sp,$sp, 4");
+		//Arguments
+		emitStoreArguments(numCallArgs);
+		emit("addu $sp,$sp, 4");
+
+		
+		for (int i = 0; i < numCallArgs; i++){
+			//emitAddvarToStack()
+		}
+
 	}
 
 

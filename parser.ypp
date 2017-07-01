@@ -32,7 +32,7 @@
 
 %%
 
-S : M Program EOFF {symbolTable->EndProg(); exit(1);}
+S : M Program EOFF {symbolTable->EndProg(); AG->printAssembly(); exit(1);}
 ;
 
 Program	: Funcs
@@ -43,7 +43,6 @@ Program	: Funcs
                 output::errorMainMissing();
                 exit(0);
             }
-            AG->printAssembly();
           }
 	;
 
@@ -317,7 +316,10 @@ Call : ID LPAREN ExpList RPAREN
                     exit(0);
                 }
                 $$.type = _VOID;
-                symbolTable->FlushExpList();
+				AG->emit("#### calling print");
+				//call meit func by id with ($$, $1 ,1);
+                symbolTable->FlushExpList(1);
+				
             }
             else if($1.varName == LIBPRINTI)
             {
@@ -329,17 +331,26 @@ Call : ID LPAREN ExpList RPAREN
                     exit(0);
                 }
                 $$.type = _VOID;
-                symbolTable->FlushExpList();
+                symbolTable->FlushExpList(1);
+				AG->emit("call printi");
+
             }
             else
             {
                 vector<varType> expected;
                 varType retType;
+
                 SymbolTableResult res = symbolTable->CallFunc($1.varName,expected,retType);
-				 /*std::cout << "in call: \nid is: " << $1.varName << " expList :" << std::endl;
-				std::cout << symbolTable->expList[0] <<std::endl;
-				std::cout << "expected is:" << expected[0] << std::endl; */
-                if(res == PROTOTYPE_MISMATCH)
+
+				/*
+				std::cout << "in call: \nid is: " << $1.varName << " expList :" << std::endl;
+				std::cout << "size explist is:"<< symbolTable->expList.size() <<std::endl;
+				std::cout << symbolTable->expList[0] << symbolTable->expList[1]<<std::endl;
+				std::cout << "size expected  is:"<< expected.size() <<std::endl;
+				std::cout << "expected is:" << expected[0] << std::endl;
+				*/
+                
+				if(res == PROTOTYPE_MISMATCH)
                 {
                     output::errorPrototypeMismatch(yylineno,$1.varName.c_str(),getTypeNames(expected));
                     exit(0);
@@ -349,7 +360,7 @@ Call : ID LPAREN ExpList RPAREN
                     output::errorUndefFunc(yylineno,$1.varName.c_str());
                     exit(0);
                 }
-
+				symbolTable->FlushExpList(expected.size());
                 $$.type = retType;
 				$1.type = retType;
 
@@ -517,7 +528,7 @@ Exp : LPAREN Exp RPAREN
             }
             $$.type = _BOOL;
 			$$.boolVal = calcRelOp($1.numVal, $2.relVal, $3.numVal);
-			//AG->emitRelopEval($$,$1,$2.relVal, $3);
+			AG->emitRelopEval($$,$1,$2.relVal, $3);
 			symbolTable->LastExpTypeIs = _BOOL;
       } |
       Exp MULOP Exp {handleBinop($1,$2,$3,$$);} |
@@ -593,7 +604,13 @@ int main(){
 	AG = new AssGen(symbolTable);
 	
 	isAnyFuncDefined = false;
+
+	AG->emitPrintI();
+	AG->emitPrint();
+
 	yyparse();
+    
+
 	//CodeBuffer::instance().printCodeBuffer();
 }
 

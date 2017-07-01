@@ -54,8 +54,8 @@ typedef struct {
 #define MAIN "main"
 #define TRUE_VAL 1
 #define FALSE_VAL 0
-#define J "j"
-#define JAL "jal"
+#define J "j "
+#define JAL "jal "
 #define CB (CodeBuffer::instance())
 
 

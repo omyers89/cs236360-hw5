@@ -127,10 +127,10 @@ void Offsets::push()
 	}
 	else { curOffset = _offsetsStack.top(); }
 	_offsetsStack.push(curOffset);
-	DEBUG("ofset_push-size is: ");
+	/*DEBUG("ofset_push-size is: ");
 	DEBUG((_offsetsStack.size()));
 	DEBUG("ofset_push-top is: ");
-	DEBUG((_offsetsStack.top()));
+	DEBUG((_offsetsStack.top()));*/
 }
 
 bool Offsets::pop(){
@@ -144,7 +144,7 @@ bool Offsets::pop(){
 
 int& Offsets::top(){
 	if (_offsetsStack.size() == 0){
-		DEBUG("size is 0: ");
+		//DEBUG("size is 0: ");
 		throw exception();
 	}
 	return _offsetsStack.top();
@@ -185,8 +185,8 @@ bool SymbolTable::EndScope(){
 		return false;
 	}
 	tmpT->printScope();
-	DEBUG("scope ended: ");
-	DEBUG((_offsetes._offsetsStack.size()));
+	/*DEBUG("scope ended: ");
+	DEBUG((_offsetes._offsetsStack.size()));*/
 	bool t = _tables.pop();
 	bool o = _offsetes.pop();
 
@@ -195,8 +195,8 @@ bool SymbolTable::EndScope(){
 
 bool SymbolTable::EndProg(){
 
-	DEBUG("End pro called ended: ");
-	DEBUG((_offsetes._offsetsStack.size()));
+	//DEBUG("End pro called ended: ");
+	//DEBUG((_offsetes._offsetsStack.size()));
 	EndScope();
 	return true;
 }
@@ -242,14 +242,14 @@ SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType){
 	}
 	_tables.top()->addVar(funcName, newFuncData, true);
 	_offsetes.top() = 0;
-	DEBUG("function added to scope : ");
-	DEBUG((_tables._tableStack.size()));
+	//DEBUG("function added to scope : ");
+	//DEBUG((_tables._tableStack.size()));
 	_tables.push(newFuncVarsTable);
 	_offsetes.push();
 
-	DEBUG("new funcScope at : ");
+	/*DEBUG("new funcScope at : ");
 	DEBUG((_tables._tableStack.size()));
-	return SUCCESS;
+	*/return SUCCESS;
 }
 
 
@@ -294,13 +294,13 @@ SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType, stri
 	}
 	_tables.top()->addVar(funcName, newFuncData, true);
 	_offsetes.top() = 0;
-	DEBUG("function added to scope : ");
-	DEBUG((_tables._tableStack.size()));
+	/*DEBUG("function added to scope : ");
+	DEBUG((_tables._tableStack.size()));*/
 	_tables.push(newFuncVarsTable);
 	_offsetes.push();
 
-	DEBUG("new funcScope at : ");
-	DEBUG((_tables._tableStack.size()));
+	/*DEBUG("new funcScope at : ");
+	DEBUG((_tables._tableStack.size()));*/
 	return SUCCESS;
 }
 
@@ -309,6 +309,9 @@ bool CompareVecs(vector<varType> &callArgs, vector<varType> &expectedArgs){
 	vector<varType>::iterator it_e = expectedArgs.begin();
 	while (it_c != callArgs.end() && it_e != expectedArgs.end())
 	{
+		DEBUG("compare vecs : ");
+		DEBUG(*it_e);
+		DEBUG(*it_c);
 		if (! areEqualTypes(*it_e, *it_c)){ return false; }
 		it_c++;
 		it_e++;
@@ -410,12 +413,11 @@ bool SymbolTable::GetVar(string name, varType& outVarType){
 bool SymbolTable::GetVarOfset(string name, varType& outVarData, int &outOfst){
 	IdType idt;
 	bool isfunc;
-	bool ex = GetFunc(name, idt, isfunc);
+	bool ex = GetSymbolOfst(name, idt, isfunc, outOfst);
 	outVarData = idt.retType;
-	//outOfst = idt.
 	return ex;
-
 }
+
 bool SymbolTable::GetVarToAssign(string name, varType& outVarType){
 	IdType idt;
 	bool isfunc;
