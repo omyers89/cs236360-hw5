@@ -304,15 +304,15 @@ SymbolTableResult SymbolTable::AddFunc(string funcName, varType newRetType, stri
 	return SUCCESS;
 }
 
-bool CompareVecs(vector<varType> &callArgs, vector<varType> &expectedArgs){
-	vector<varType>::iterator it_c = callArgs.begin();
+bool CompareVecs(vector<STYPE> &callArgs, vector<varType> &expectedArgs){
+	vector<STYPE>::iterator it_c = callArgs.begin();
 	vector<varType>::iterator it_e = expectedArgs.begin();
 	while (it_c != callArgs.end() && it_e != expectedArgs.end())
 	{
 		DEBUG("compare vecs : ");
 		DEBUG(*it_e);
-		DEBUG(*it_c);
-		if (! areEqualTypes(*it_e, *it_c)){ return false; }
+		DEBUG((*it_c).type);
+		if (!areEqualTypes(*it_e, (*it_c).type)){ return false; }
 		it_c++;
 		it_e++;
 	}
@@ -431,7 +431,7 @@ void SymbolTable::AddToFormalList(string varName, varType type){
 	formalList.argTypes.push_back(type);
 }
 
-void SymbolTable::AddToExpList(varType type){
+void SymbolTable::AddToExpList(STYPE type){
 	expList.insert(expList.begin(), type);
 }
 

@@ -305,7 +305,7 @@ Call : ID LPAREN ExpList RPAREN
         {
             if($1.varName == LIBPRINT)
             {
-                if((symbolTable->expList.size() != 1) || !isString(symbolTable->expList.back()))
+                if((symbolTable->expList.size() != 1) || !isString(symbolTable->expList.back().type))
                 {
                     std::vector<const char*> stringVec;
                     stringVec.push_back("STRING");
@@ -314,13 +314,14 @@ Call : ID LPAREN ExpList RPAREN
                 }
                 $$.type = _VOID;
 				AG->emit("#### calling print");
-				//call meit func by id with ($$, $1 ,1);
+				AG->emitCallFuncById($$, $1, 1);
+
                 symbolTable->FlushExpList(1);
 				
             }
             else if($1.varName == LIBPRINTI)
             {
-                if((symbolTable->expList.size() != 1) || !isNumeric(symbolTable->expList.back()))
+                if((symbolTable->expList.size() != 1) || !isNumeric(symbolTable->expList.back().type))
                 {
                     std::vector<const char*> intVec;
                     intVec.push_back("INT");
@@ -328,8 +329,10 @@ Call : ID LPAREN ExpList RPAREN
                     exit(0);
                 }
                 $$.type = _VOID;
-                symbolTable->FlushExpList(1);
-				AG->emit("call printi");
+				AG->emitCallFuncById($$, $1, 1);
+                
+				symbolTable->FlushExpList(1);
+				
 
             }
             else
@@ -357,6 +360,8 @@ Call : ID LPAREN ExpList RPAREN
                     output::errorUndefFunc(yylineno,$1.varName.c_str());
                     exit(0);
                 }
+				AG->emitCallFuncById($$, $1, expected.size());
+
 				symbolTable->FlushExpList(expected.size());
                 $$.type = retType;
 				$1.type = retType;
@@ -388,12 +393,12 @@ Call : ID LPAREN ExpList RPAREN
 ExpList : Exp
           {
 		  //std::cout << "in ExpList : Exp \nExp is:" << $1.type <<std::endl;
-            symbolTable->AddToExpList($1.type);
+            symbolTable->AddToExpList($1);
           } |
           Exp COMMA ExpList
           {
 		  //std::cout << "in ExpList : Exp COMMA ExpList \nExp1 is:" << $1.type  <<std::endl;
-            symbolTable->AddToExpList($1.type);
+            symbolTable->AddToExpList($1);
           }
     ;
 
@@ -435,6 +440,7 @@ Exp : LPAREN Exp RPAREN
 			$$.stringVal = $1.stringVal;
 			$$.boolVal = $1.boolVal;
 			symbolTable->LastExpTypeIs = $1.type;
+			//emit load return register to $$
 	  } |
 
       NUM
@@ -661,6 +667,7 @@ void addFunc(STYPE id, STYPE ret){
         output::errorDef(yylineno,varNameOut.c_str());
         exit(0);
     }
+	AG->emitFuncLable(id.varName);
     symbolTable->ReturnType = ret.type;
 }
 

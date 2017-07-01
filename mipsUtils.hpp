@@ -50,7 +50,7 @@ public:
 	void emitPushLocal();
 	void emitPushInitializedLocal(STYPE &V);
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
-
+	void emitFuncLable(string funcName);
 };
 
 #endif

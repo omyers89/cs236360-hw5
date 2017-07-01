@@ -19,7 +19,7 @@ struct IdType{
 };
 
 
-typedef vector<varType>::iterator varIt;
+typedef vector<STYPE>::iterator varIt;
 typedef vector<string>::iterator nameIt;
 
 typedef struct {
@@ -94,7 +94,7 @@ public:
 	bool IsWhileOrIfScopeOpened;
 	varType LastExpTypeIs;
 	varList formalList;
-	vector<varType> expList;
+	vector<STYPE> expList;
 	varType ReturnType;
 	SymbolTable() :IsMainDefined(false),
 								WhileCount(0),
@@ -116,7 +116,8 @@ public:
 	bool GetVarOfset(string name, varType& outVarData, int &outOfst); //return a reference to the object, or null and false otherwise
 	bool GetVarToAssign(string name, varType& outVarType);
 	void AddToFormalList(string varName, varType type);
-	void AddToExpList(varType type);
+	//void AddToExpList(varType type);
+	void AddToExpList(STYPE exp);
 	void FlushFormalList();
 
 	void FlushExpList();

@@ -87,6 +87,9 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		ostringstream t;
 		emitPushLocal();
 		t << "sw " << V.regName << " ,($sp)";
+		std::cout << "in emitPushInitializedLocal 1 befor return register : " << V.regName << std::endl;
+		std::cout << "emitPushInitializedLocal V is:" << V.varName << V.binVal << V.numVal << V.boolVal << V.stringVal;
+
 		RegisterStore::Instance().ReturnRegister(V.regName);
 		emit(t.str());
 	}
@@ -138,6 +141,9 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		ostringstream t;
 		t << sop << " " << v1.regName << ", " << v1.regName << ", " << v2.regName;
 		emit(t.str());
+
+		std::cout << "in emeit bin befor return register : " << v2.regName << std::endl;
+
 		RegisterStore::Instance().ReturnRegister(v2.regName);
 		parent.regName = v1.regName;
 	}
@@ -166,8 +172,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	}
 	
 	int AssGen::emitRelopEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2) {
-		string reg1 = v1.alocatedRegister;
-		string reg2 = v2.alocatedRegister;
+		string reg1 = v1.regName;
+		string reg2 = v2.regName;
 	
 		string target = ""; //empty target for later backpatching
 		string branchCond = getRelOpBranch(op);
@@ -176,7 +182,11 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		VV.falseList = CB.makelist(nextInstr() + 1);
 		t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
 		emit(t.str());
+		//std::cout << "in emitRelopEval 1 befor return register : " << v1.regName << std::endl;
+
 		RegisterStore::Instance().ReturnRegister(reg1);
+		//std::cout << "in emitRelopEval  2 befor return register : " << v2.regName << std::endl;
+
 		RegisterStore::Instance().ReturnRegister(reg2);
 
 		return emit(J);
@@ -278,7 +288,21 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	}
 
 	void AssGen::emitStoreArguments(int numCallArgs){
+		
+		int last = st->expList.size();
+		last--;
+		for (int i = numCallArgs; i > 0; i--){
+			STYPE tmpVar = st->expList[last];
 
+			//std::cout << "tmpVar is:" << tmpVar.varName << "," << tmpVar.binVal << "," << tmpVar.numVal << "," << tmpVar.boolVal;
+			emitPushInitializedLocal(tmpVar);
+			last--;
+		}
+
+	}
+
+	void emitFpSp(){
+		
 
 	}
 
@@ -286,23 +310,26 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		//save registers
 		// *** ignored for now...
 		//old frame pointer
-		emit("sw $fp, 0($sp)");
 		emit("addu $sp,$sp, 4");
-		//return address
-		emit("sw $ra, 0($sp)");
-		emit("addu $sp,$sp, 4");
-		//Arguments
-		emitStoreArguments(numCallArgs);
-		emit("addu $sp,$sp, 4");
-
+		emit("sw $fp, 0($sp)"); //save old sp
 		
-		for (int i = 0; i < numCallArgs; i++){
-			//emitAddvarToStack()
-		}
-
+		//return address
+		emit("addu $sp,$sp, 4");
+		emit("sw $ra, 0($sp)"); //store return address
+		//Arguments
+		emitStoreArguments(numCallArgs); //put all arguments on stack
+		emit("li $fp, 0($sp)"); //load the current sp value to fp
+		ostringstream t;
+		t << "j " << I1.varName;
+		emit(t.str());
 	}
 
-
+	void AssGen::emitFuncLable(string funcName){
+		
+		ostringstream t;
+		t << funcName << ":";
+		emit(t.str());
+	}
 
 
 /*

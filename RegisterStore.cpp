@@ -41,6 +41,7 @@ string RegisterStore::GetRegister() {
 }
 
 void RegisterStore::ReturnRegister(string registerName) {
+	//std::cout << "in Return register : " << registerName << std::endl;
 	if(!ValidateRegister(registerName))
 		throw new InvalidRegisterNameException();
 	_registers.insert(registerName);
