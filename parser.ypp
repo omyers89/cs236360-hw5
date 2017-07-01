@@ -137,7 +137,6 @@ Statement : V LBRACE M Statements RBRACE {
                 }
 
                 varType out;
-                string regName;
                 if(symbolTable->GetVar($2.varName,out))
                 {
                     output::errorDef(yylineno,$2.varName.c_str());
