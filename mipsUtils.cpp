@@ -72,11 +72,33 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		int ofst;
 		varType vt;
 		st->GetVarOfset(v1.varName, vt, ofst);
-		t << "lw " << freshReg << ", " << ofst << "($sp)";
+		t << "lw " << freshReg << ", " << INTOFST*ofst << "($fp)";
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
 	}
 
+	void AssGen::emitPushLocal() {
+		ostringstream t;
+		t << "addu $sp, $sp, 4";
+		emit(t.str());
+	}
+
+	void AssGen::emitPushInitializedLocal(STYPE &V) {
+		ostringstream t;
+		emitPushLocal();
+		t << "sw " << V.regName << " ,($sp)";
+		RegisterStore::Instance().ReturnRegister(V.regName);
+		emit(t.str());
+	}
+
+	void AssGen::emitUpdateLocal(STYPE &v1, STYPE &v2){
+		ostringstream t;
+		int ofst;
+		varType vt;
+		st->GetVarOfset(v1.varName, vt, ofst);
+		t << "sw " << v2.regName << " ," << INTOFST*ofst <<"($fp)";
+		emit(t.str());
+	}
 
 	void AssGen::emitLoadBoolToReg(STYPE &v1, STYPE &parent){
 		ostringstream t;

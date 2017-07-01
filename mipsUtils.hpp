@@ -5,7 +5,7 @@
 
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
-
+#define INTOFST 4
 
 class AssGen{
 private:
@@ -47,6 +47,10 @@ public:
 	void bpStmnt(STYPE &L, STYPE &S);
 	void emitStoreArguments(int numCallArgs);
 	void emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs);
+	void emitPushLocal();
+	void emitPushInitializedLocal(STYPE &V);
+	void emitUpdateLocal(STYPE &v1, STYPE &v2);
+
 };
 
 #endif

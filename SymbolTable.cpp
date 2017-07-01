@@ -366,7 +366,7 @@ bool SymbolTable::GetSymbolOfst(string name, IdType &funType, bool &isfunc, int 
 		if (curTable->get(name, vd)){
 			funType = vd.t;
 			isfunc = vd.isFunc;
-			ofst = vd.offset;
+			ofst = vd.offset + 1;
 			return true;
 		}
 		curTable = curTable->_parentTable;

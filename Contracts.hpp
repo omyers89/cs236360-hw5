@@ -42,7 +42,6 @@ typedef struct {
 	int quad;
 	string instr;
 	string alocatedRegister;
-
 }STYPE;
 
 
