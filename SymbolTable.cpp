@@ -363,7 +363,7 @@ bool SymbolTable::GetSymbolOfst(string name, IdType &funType, bool &isfunc, int 
 		if (curTable->get(name, vd)){
 			funType = vd.t;
 			isfunc = vd.isFunc;
-			ofst = vd.offset;
+			ofst = vd.offset + 1;
 			return true;
 		}
 		curTable = curTable->_parentTable;
@@ -410,12 +410,11 @@ bool SymbolTable::GetVar(string name, varType& outVarType){
 bool SymbolTable::GetVarOfset(string name, varType& outVarData, int &outOfst){
 	IdType idt;
 	bool isfunc;
-	bool ex = GetFunc(name, idt, isfunc);
+	bool ex = GetSymbolOfst(name, idt, isfunc, outOfst);
 	outVarData = idt.retType;
-	//outOfst = idt.
 	return ex;
-
 }
+
 bool SymbolTable::GetVarToAssign(string name, varType& outVarType){
 	IdType idt;
 	bool isfunc;

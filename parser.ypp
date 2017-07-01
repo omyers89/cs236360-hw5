@@ -98,10 +98,11 @@ Statements : Statement
 			}
     ;
 
-Statement : V LBRACE M Statements RBRACE {
-					symbolTable->EndScope();
-					$$.nextList = $2.nextList;
-					} |
+Statement : V LBRACE M Statements RBRACE
+            {
+                symbolTable->EndScope();
+                $$.nextList = $2.nextList;
+            } |
             Type ID SC
             {
                 if(symbolTable->IsWhileOrIfIntact)
@@ -118,7 +119,7 @@ Statement : V LBRACE M Statements RBRACE {
                 }
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
-				//need to add here put var on stack
+                AG->emitPushLocal();
             } |
             Type ID ASSIGN Exp SC
             {
@@ -152,8 +153,7 @@ Statement : V LBRACE M Statements RBRACE {
                 }
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
-				//need to add here put var on stack
-
+				AG->emitPushInitializedLocal($4);
             } |
             ID ASSIGN Exp SC
             {
@@ -179,9 +179,7 @@ Statement : V LBRACE M Statements RBRACE {
                     free(str); //TODO: i'm crying
                     exit(0);
                 }
-				//need to add here update var on stack
-
-
+                AG->emitUpdateLocal($1,$3);
             } |
             Call SC {
 				$$.type = $1.type;
