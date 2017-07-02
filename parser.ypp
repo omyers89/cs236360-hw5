@@ -100,7 +100,8 @@ Statements : Statement
 Statement : V LBRACE M Statements RBRACE
             {
                 symbolTable->EndScope();
-                $$.nextList = $2.nextList;
+                AG->bpStmnt($$,$4); //$$.nextList = $4.nextList;
+				//AG->bpStmntList($$, $1, $2, $3);
             } |
             Type ID SC
             {
@@ -118,6 +119,7 @@ Statement : V LBRACE M Statements RBRACE
                 }
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
+				
                 AG->emitPushLocal();
             } |
             Type ID ASSIGN Exp SC
@@ -152,6 +154,9 @@ Statement : V LBRACE M Statements RBRACE
                 }
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
+				if (isBoolean($4.type)){
+					AG->fixBoolAssign($$,$1, $4);
+				}
 				AG->emitPushInitializedLocal($4);
             } |
             ID ASSIGN Exp SC
@@ -178,6 +183,9 @@ Statement : V LBRACE M Statements RBRACE
                     free(str); //TODO: i'm crying
                     exit(0);
                 }
+				if (isBoolean($3.type)){
+					AG->fixBoolAssign($$ , $1, $3);
+				}
                 AG->emitUpdateLocal($1,$3);
             } |
             Call SC {
@@ -212,6 +220,9 @@ Statement : V LBRACE M Statements RBRACE
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
+				//if (isBoolean($2.type)){
+				//	AG->fixBoolAssign($$,$2);
+				//}
 				//need to add here put var on stack or in the right register
 
             } |
@@ -497,24 +508,24 @@ Exp : LPAREN Exp RPAREN
       } |
       Exp AND Mbp Exp
       {
-            if(!isBoolean($1.type) || !areEqualTypes($1.type,$3.type))
+            if(!isBoolean($1.type) || !areEqualTypes($1.type,$4.type))
             {
                 output::errorMismatch(yylineno);
                 exit(0);
             }
-            $$.type = $1.type;
+            $$.type = _BOOL;
             $$.boolVal = $1.boolVal && $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->bpAnd($$, $1,$3, $4);
       } |
       Exp OR Mbp Exp
       {
-            if(!isBoolean($1.type) || !areEqualTypes($1.type,$3.type))
+            if(!isBoolean($1.type) || !areEqualTypes($1.type,$4.type))
             {
                 output::errorMismatch(yylineno);
                 exit(0);
             }
-            $$.type = $1.type;
+            $$.type = _BOOL;
             $$.boolVal = $1.boolVal || $3.boolVal;
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->bpOr($$, $1, $3, $4);

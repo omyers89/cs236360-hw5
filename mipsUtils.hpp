@@ -26,6 +26,7 @@ public:
 	void emitLoadNumToReg(STYPE &v1, STYPE &parent);
 	void emitLoadIdToReg(STYPE &v1, STYPE &parent);
 	void emitLoadBoolToReg(STYPE &v1, STYPE &parent);
+	string emitLoadBoolToReg( bool boolVal);
 	string getBinOp(binop bo);
 	void emitBin(STYPE &v1, STYPE &v2, STYPE &parent, binop op);
 	string getRelOpBranch(relop ro);
@@ -50,7 +51,9 @@ public:
 	void emitPushLocal();
 	void emitPushInitializedLocal(STYPE &V);
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
+	void emitUpdateLocalFromReg(STYPE &v1, string regName);
 	void emitFuncLable(string funcName);
+	void fixBoolAssign(STYPE &S, STYPE &I, STYPE &E);
 };
 
 #endif
