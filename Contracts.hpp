@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <map>
 #include <list>
+#include <stack>
 #include "output.hpp"
 
 using namespace std;
@@ -42,6 +43,8 @@ typedef struct {
 	int quad;
 	string instr;
 	string alocatedRegister;
+    stack<string> instrList;
+    stack<int> valueList;
 }STYPE;
 
 

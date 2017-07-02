@@ -251,9 +251,32 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		return emit(J);
 	}
 
+	vector<int> AssGen::mergeLists(vector<int> &L1, vector<int> &L2) {
+		return CodeBuffer::instance().merge(L1,L2);
+	}
+
 	void AssGen::bpIf(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1){
 		backPatch(B.trueList, M1.instr);
 		S.nextList = CodeBuffer::merge(B.falseList, S1.nextList);
+	}
+
+	void AssGen::bpSwitchCase(STYPE &S, STYPE &E, STYPE &N,STYPE &CL){
+		backPatch(N.nextList,next());
+		while(!CL.valueList.empty()) {
+			int value = CL.valueList.top();
+			string instr = CL.instrList.top();
+			CL.valueList.pop();
+			CL.instrList.pop();
+			emitSwitchCase(E,value,instr);
+		}
+		S.nextList = CB.merge(CL.nextList,CB.makelist(nextInstr()));
+		emit(J);
+	}
+
+	void AssGen::emitSwitchCase(STYPE &E, int value, string instr){
+		ostringstream t;
+		t << "beq " << E.regName << " ,$" << value << " ," << instr;
+		emit(t.str());
 	}
 
 	void AssGen::bpIfElse(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1, STYPE &N, STYPE &M2, STYPE &S2){

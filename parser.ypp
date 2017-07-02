@@ -264,35 +264,57 @@ Statement : V LBRACE M Statements RBRACE
                     exit(0);
                 }
             } |
-            SWITCH LPAREN Exp RPAREN KS LBRACE CaseList RBRACE SC
+            SWITCH LPAREN Exp Nbp RPAREN KS LBRACE CaseList RBRACE SC
             {
                 if(!isNumeric($3.type))
                 {
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
+                AG->bpSwitchCase($$,$3,$4,$8);
             }
     ;
 
-CaseList : CaseStat CaseList | CaseStat
+CaseList : CaseStat CaseList
+           {
+                $$.instrList = $2.instrList;
+                $$.instrList.push($1.instr);
+                $$.valueList = $2.valueList;
+                $$.valueList.push($1.numVal);
+                $$.nextList = AG->mergeLists($2.nextList,$1.nextList);
+           } |
+           CaseStat
+           {
+                $$.instrList.push($1.instr);
+                $$.valueList.push($1.numVal);
+                $$.nextList = $1.nextList;
+           }
     ;
 
-CaseStat : CASE NUM COLON CKE Statement BREAK SC 
-			{
-			if(symbolTable->IsWhileOrIfScopeOpened)
-                {
-                    symbolTable->EndScope();
-                    symbolTable->IsWhileOrIfScopeOpened = false;
-                }
-			}|
-           CASE NUM B COLON CKE Statement BREAK SC
+CaseStat : CASE NUM COLON CKE Mbp Statement BREAK SC
 		   {
-			if(symbolTable->IsWhileOrIfScopeOpened)
+                if(symbolTable->IsWhileOrIfScopeOpened)
                 {
                     symbolTable->EndScope();
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
-			}
+
+                $$.instr = $5.instr;
+                $$.numVal = $2.numVal;
+                $$.nextList = $6.nextList;
+		   }|
+           CASE NUM B COLON CKE Mbp Statement BREAK SC
+		   {
+			    if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+
+                $$.instr = $6.instr;
+                $$.numVal = $2.numVal;
+                $$.nextList = $7.nextList;
+		   }
     ;
 
 Call : ID LPAREN ExpList RPAREN
@@ -523,11 +545,12 @@ M : { symbolTable->OpenScope();}
 W : {
         symbolTable->WhileCount++;
         symbolTable->IsWhileOrIfIntact = true;
-		if ( !(symbolTable->LastExpTypeIs == _BOOL)){
-		output::errorMismatch(yylineno);
-        exit(0);
-	}
-	AG->addNextInstr($$);
+		if ( !(symbolTable->LastExpTypeIs == _BOOL))
+		{
+		    output::errorMismatch(yylineno);
+            exit(0);
+	    }
+	    AG->addNextInstr($$);
     }
     ;
 
@@ -579,12 +602,9 @@ Nbp : {AG->emitNbp($$);}
 
 int main(){
 	symbolTable = new SymbolTable();
-	//RS = new RegisterStore();
 	AG = new AssGen(symbolTable);
-	
 	isAnyFuncDefined = false;
 	yyparse();
-	//CodeBuffer::instance().printCodeBuffer();
 }
 
 int yyerror(char * message){
