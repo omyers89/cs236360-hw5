@@ -178,13 +178,13 @@ Table* Tables::get(int i){
 }
 
 bool SymbolTable::EndScope(){
-	output::endScope();
+	//output::endScope();
 	Table* tmpT = _tables.top();
 	if (NULL == tmpT) {
 		cout << "in EndScope: poping empty stack!" << endl;
 		return false;
 	}
-	tmpT->printScope();
+	//tmpT->printScope();
 	/*DEBUG("scope ended: ");
 	DEBUG((_offsetes._offsetsStack.size()));*/
 	bool t = _tables.pop();

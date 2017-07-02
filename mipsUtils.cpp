@@ -196,33 +196,11 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		VV.falseList = CB.makelist(nextInstr() + 1);
 		t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
 		emit(t.str());
-		//std::cout << "in emitRelopEval 1 befor return register : " << v1.regName << std::endl;
-
 		RegisterStore::Instance().ReturnRegister(reg1);
-		//std::cout << "in emitRelopEval  2 befor return register : " << v2.regName << std::endl;
-
 		RegisterStore::Instance().ReturnRegister(reg2);
 
 		return emit(J);
 	}
-	
-	//int AssGen::emitBoolEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2) {
-	//	string reg1 = v1.alocatedRegister;
-	//	string reg2 = v2.alocatedRegister;
-
-	//	string target = ""; //empty target for later backpatching
-	//	string branchCond = getRelOpBranch(op);
-	//	ostringstream t;
-	//	VV.trueList = CB.makelist(nextInstr());
-	//	VV.falseList = CB.makelist(nextInstr() + 1);
-	//	t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
-	//	emit(t.str());
-	//	RegisterStore::Instance().ReturnRegister(reg1);
-	//	RegisterStore::Instance().ReturnRegister(reg2);
-
-	//	return emit(J);
-	//}
-	
 
 	void AssGen::printAssembly(){
 		CodeBuffer::instance().printDataBuffer();
