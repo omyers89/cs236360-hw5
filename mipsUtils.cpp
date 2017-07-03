@@ -288,7 +288,10 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	
 	void AssGen::bpIf(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1){
 		backPatch(B.trueList, M1.instr);
+		backPatch(B.falseList, next());
 		S.nextList = CodeBuffer::merge(B.falseList, S1.nextList);
+		RegisterStore::Instance().ReturnRegister(B.regName);
+
 		//emit("int bpIf");
 		//printVec(S.nextList);
 	}
@@ -299,6 +302,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		backPatch(B.trueList, M1.instr);
 		backPatch(B.falseList, M2.instr);
 		S.nextList = CodeBuffer::merge(CodeBuffer::merge(S1.nextList, N.nextList), S2.nextList);
+		RegisterStore::Instance().ReturnRegister(B.regName);
 		//emit("int bpIfElse");
 		//printVec(S.nextList);
 	}
@@ -317,24 +321,24 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	int AssGen::emitNbp(STYPE &N){
 		N.nextList = CB.makelist(nextInstr());
-		//emit("### in emitNbp");
-		//ostringstream t;
-		//t <<"##"<< nextInstr();
-		//emit(t.str());
+		emit("### in emitNbp");
+		ostringstream t;
+		t <<"##"<< nextInstr();
+		emit(t.str());
 		return emit(J);
 	}
 
 	void AssGen::bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S){
 		
-		//printVec(L1.nextList);
-		//emit("### print S list:");
+		printVec(L1.nextList);
+		emit("### print S list:");
 
-		//printVec(S.nextList);
+		printVec(S.nextList);
 		backPatch(L1.nextList, M.instr);
 		L.nextList = S.nextList;
-		//emit("### print L list:");
+		emit("### print L list:");
 
-		//printVec(S.nextList);
+		printVec(S.nextList);
 		
 		
 
@@ -342,12 +346,12 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 
 	void AssGen::bpStmnt(STYPE &L, STYPE &S){
-		//emit("### in bpStmnt");
+		emit("### in bpStmnt");
 		L.nextList = S.nextList;
-		//backPatch(L.nextList, next());
-		//emit("### print L list:");
+		backPatch(L.nextList, next());
+		emit("### print L list:");
 
-		//printVec(S.nextList);
+		printVec(S.nextList);
 		
 	}
 

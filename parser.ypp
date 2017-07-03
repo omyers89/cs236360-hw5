@@ -29,6 +29,7 @@
 %left SUMOP
 %left MULOP
 %right NOT
+%right IE
 
 %%
 
@@ -591,6 +592,8 @@ KE : {
 		AG->addNextInstr($$);
 	}
     ;
+
+	
 CKE : {
 		if(symbolTable->IsWhileOrIfScopeOpened)
                 {
