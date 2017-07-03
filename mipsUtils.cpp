@@ -352,22 +352,22 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	int AssGen::emitNbp(STYPE &N){
 		N.nextList = CB.makelist(nextInstr());
-		emit("### in emitNbp");
-		ostringstream t;
-		t <<"##"<< nextInstr();
-		emit(t.str());
+		//emit("### in emitNbp");
+		//ostringstream t;
+		//t <<"##"<< nextInstr();
+		//emit(t.str());
 		return emit(J);
 	}
 
 	void AssGen::bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S){
 		
 		printVec(L1.nextList);
-		emit("### print S list:");
+		//emit("### print S list:");
 
 		printVec(S.nextList);
 		backPatch(L1.nextList, M.instr);
 		L.nextList = S.nextList;
-		emit("### print L list:");
+		//emit("### print L list:");
 
 		printVec(S.nextList);
 		
@@ -377,12 +377,12 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 
 	void AssGen::bpStmnt(STYPE &L, STYPE &S){
-		emit("### in bpStmnt");
+		//emit("### in bpStmnt");
 		L.nextList = S.nextList;
 		backPatch(L.nextList, next());
-		emit("### print L list:");
+		//emit("### print L list:");
 
-		printVec(S.nextList);
+		//printVec(S.nextList);
 		
 	}
 
