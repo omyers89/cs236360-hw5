@@ -34,7 +34,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	int AssGen::emitPrintI(){
 		emit("printi:");
-		emit("lw $a0, 0($sp)");
+		emit("lw $a0, 0($sp)"); // fetching argument on stack
 		emit("li $v0, 1");
 		emit("syscall");
 		return emit("jr $ra");
@@ -43,10 +43,18 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	int AssGen::emitPrint(){
 		emit("print:");
-		emit("lw $a0, 0($sp)");
+		ostringstream t;
+		t << "la $a0, " << STRING_DATA_NAME;
+		emit(t.str());
 		emit("li $v0, 4");
 		emit("syscall");
 		return emit("jr $ra");
+	}
+
+	void AssGen::emitDataLiteral(STYPE &V) {
+		ostringstream t;
+		t << STRING_DATA_NAME << ": .asciiz " << V.stringVal;
+		CB.emitData(t.str());
 	}
 
 	void AssGen::emitLoadNumToReg(STYPE &v1, STYPE &parent){
@@ -61,7 +69,6 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		v1.regName = parent.regName = freshReg;
 	}
 
-
 	void AssGen::emitLoadIdToReg(STYPE &v1, STYPE &parent){
 		ostringstream t;
 		if (RegisterStore::Instance().NumberOfAvailableRegisters() == 0)
@@ -72,14 +79,15 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		int ofst;
 		varType vt;
 		st->GetVarOfset(v1.varName, vt, ofst);
-		t << "lw " << freshReg << ", " << INTOFST*ofst << "($fp)";
+		string sign = (ofst == 0)?"":"-";
+		t << "lw " << freshReg << " ," << sign << INTOFST*ofst << "($fp)";
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
 	}
 
 	void AssGen::emitPushLocal() {
 		ostringstream t;
-		t << "addu $sp, $sp, 4";
+		t << "addu $sp, $sp, -4";
 		emit(t.str());
 	}
 
@@ -99,7 +107,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		int ofst;
 		varType vt;
 		st->GetVarOfset(v1.varName, vt, ofst);
-		t << "sw " << v2.regName << " ," << INTOFST*ofst <<"($fp)";
+		string sign = (ofst == 0)?"":"-";
+		t << "sw " << v2.regName << " ," << sign << INTOFST*ofst <<"($fp)";
 		emit(t.str());
 	}
 
@@ -113,7 +122,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::emitReturnVoid() {
 		ostringstream t;
-		t << "move $sp, $fp";
+		t << "move $sp, $fp" << endl << "jr $ra";
 		emit(t.str());
 	}
 
@@ -321,26 +330,30 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	}
 
-	void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
-		//save registers
-		// *** ignored for now...
-		//old frame pointer
-		emit("addu $sp,$sp, 4");
-		emit("sw $fp, 0($sp)"); //save old fp
-		
-		//return address
-		emit("addu $sp,$sp, 4");
-		emit("sw $ra, 0($sp)"); //store return address
-		//Arguments
-		emitStoreArguments(numCallArgs); //put all arguments on stack
-		emit("lw $fp, 0($sp)"); //load the current sp value to fp
-		ostringstream t;
-		t << "j " << I1.varName;
-		emit(t.str());
-
-		//addd reallease of registers in the end of call
+	void AssGen::emitNewStackFrame() {
+		emit("move $fp, $sp"); //load the current sp value to fp
 	}
 
+void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
+	//save registers
+	// *** ignored for now...
+	//old frame pointer
+	emit("addu $sp,$sp, -4");
+	emit("sw $fp, 0($sp)"); //save old fp
+
+	//return address
+	emit("addu $sp,$sp, -4");
+	emit("sw $ra, 0($sp)"); //store return address
+	//Arguments
+	if(I1.varName != LIBPRINT)
+		emitStoreArguments(numCallArgs); //put all arguments on stack
+	emit("move $fp, $sp"); //load the current sp value to fp
+	ostringstream t;
+	t << "j " << I1.varName;
+	emit(t.str());
+
+	//addd reallease of registers in the end of call
+}
 	void AssGen::emitFuncLable(string funcName){
 		
 		ostringstream t;

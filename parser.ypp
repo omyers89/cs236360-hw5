@@ -43,7 +43,6 @@ Program	: Funcs
                 output::errorMainMissing();
                 exit(0);
             }
-            AG->printAssembly();
           }
 	;
 
@@ -482,7 +481,14 @@ Exp : LPAREN Exp RPAREN
 			symbolTable->LastExpTypeIs = _BYTE;
 			AG->emitLoadNumToReg($1,$$);
       } |
-      STRING {$$.type = _STRING; $$.stringVal = $1.stringVal; $$.varName=""; symbolTable->LastExpTypeIs = _STRING;} |
+      STRING
+      {
+        $$.type = _STRING;
+        $$.stringVal = $1.stringVal;
+        $$.varName="";
+        symbolTable->LastExpTypeIs = _STRING;
+        AG->emitDataLiteral($1);
+      } |
       TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; 
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
@@ -683,6 +689,7 @@ void addFunc(STYPE id, STYPE ret){
         exit(0);
     }
 	AG->emitFuncLable(id.varName);
+	AG->emitNewStackFrame();
     symbolTable->ReturnType = ret.type;
 }
 

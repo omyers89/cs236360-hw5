@@ -6,6 +6,7 @@
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
 #define INTOFST 4
+#define STRING_DATA_NAME "str"
 
 class AssGen{
 private:
@@ -56,6 +57,8 @@ public:
 	vector<int> mergeLists(vector<int> &L1, vector<int> &L2);
 	void bpSwitchCase(STYPE &S, STYPE &E, STYPE &N,STYPE &CL);
 	void emitSwitchCase(STYPE &E, int value, string instr);
+	void emitNewStackFrame();
+	void emitDataLiteral(STYPE &V);
 };
 
 #endif
