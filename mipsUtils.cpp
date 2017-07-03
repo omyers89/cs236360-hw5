@@ -34,7 +34,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	int AssGen::emitPrintI(){
 		emit("printi:");
-		emit("lw $a0, 0($sp)");
+		emit("lw $a0, 0($sp)"); // fetching argument on stack
 		emit("li $v0, 1");
 		emit("syscall");
 		return emit("jr $ra");
@@ -43,10 +43,18 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	int AssGen::emitPrint(){
 		emit("print:");
-		emit("lw $a0, 0($sp)");
+		ostringstream t;
+		t << "la $a0, " << STRING_DATA_NAME;
+		emit(t.str());
 		emit("li $v0, 4");
 		emit("syscall");
 		return emit("jr $ra");
+	}
+
+	void AssGen::emitDataLiteral(STYPE &V) {
+		ostringstream t;
+		t << STRING_DATA_NAME << ": .asciiz " << V.stringVal;
+		CB.emitData(t.str());
 	}
 
 	void AssGen::emitLoadNumToReg(STYPE &v1, STYPE &parent){
@@ -61,7 +69,6 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		v1.regName = parent.regName = freshReg;
 	}
 
-
 	void AssGen::emitLoadIdToReg(STYPE &v1, STYPE &parent){
 		ostringstream t;
 		if (RegisterStore::Instance().NumberOfAvailableRegisters() == 0)
@@ -72,14 +79,15 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		int ofst;
 		varType vt;
 		st->GetVarOfset(v1.varName, vt, ofst);
-		t << "lw " << freshReg << ", " << INTOFST*ofst << "($fp)";
+		string sign = (ofst == 0)?"":"-";
+		t << "lw " << freshReg << " ," << sign << INTOFST*ofst << "($fp)";
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
 	}
 
 	void AssGen::emitPushLocal() {
 		ostringstream t;
-		t << "addu $sp, $sp, 4";
+		t << "addu $sp, $sp, -4";
 		emit(t.str());
 	}
 
@@ -100,7 +108,30 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		int ofst;
 		varType vt;
 		st->GetVarOfset(v1.varName, vt, ofst);
-		t << "sw " << v2.regName << " ," << INTOFST*ofst <<"($fp)";
+		string sign = (ofst == 0)?"":"-";
+		t << "sw " << v2.regName << " ," << sign << INTOFST*ofst <<"($fp)";
+		emit(t.str());
+	}
+
+	void AssGen::emitReturnNonVoid(STYPE &V) {
+		ostringstream t;
+		t << "move $v0, " << V.regName;
+		RegisterStore::Instance().ReturnRegister(V.regName);
+		emit(t.str());
+		emitReturn();
+	}
+
+	void AssGen::emitReturn(){
+		emit("move $sp, $fp");
+		emit("jr $ra");
+	}
+
+	void AssGen::emitRestoreOnReturn() {
+		ostringstream t;
+		emit("lw $ra, 0($sp)"); //restore caller $ra
+		emit("addu $sp, $sp, 4");
+		emit("lw $fp, 0($sp)"); // restore caller $fp
+		emit("move $sp, $fp"); //adjust $sp
 		emit(t.str());
 	}
 
@@ -210,33 +241,11 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		VV.falseList = CB.makelist(nextInstr() + 1);
 		t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
 		emit(t.str());
-		//std::cout << "in emitRelopEval 1 befor return register : " << v1.regName << std::endl;
-
 		RegisterStore::Instance().ReturnRegister(reg1);
-		//std::cout << "in emitRelopEval  2 befor return register : " << v2.regName << std::endl;
-
 		RegisterStore::Instance().ReturnRegister(reg2);
 
 		return emit(J);
 	}
-	
-	//int AssGen::emitBoolEval(STYPE &VV, STYPE &v1, relop op, STYPE &v2) {
-	//	string reg1 = v1.alocatedRegister;
-	//	string reg2 = v2.alocatedRegister;
-
-	//	string target = ""; //empty target for later backpatching
-	//	string branchCond = getRelOpBranch(op);
-	//	ostringstream t;
-	//	VV.trueList = CB.makelist(nextInstr());
-	//	VV.falseList = CB.makelist(nextInstr() + 1);
-	//	t << branchCond << " " << reg1 << ", " << reg2 << ", " << target;
-	//	emit(t.str());
-	//	RegisterStore::Instance().ReturnRegister(reg1);
-	//	RegisterStore::Instance().ReturnRegister(reg2);
-
-	//	return emit(J);
-	//}
-	
 
 	void AssGen::printAssembly(){
 		CodeBuffer::instance().printDataBuffer();
@@ -286,6 +295,10 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	}
 	
+	vector<int> AssGen::mergeLists(vector<int> &L1, vector<int> &L2) {
+		return CodeBuffer::instance().merge(L1,L2);
+	}
+
 	void AssGen::bpIf(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1){
 		backPatch(B.trueList, M1.instr);
 		backPatch(B.falseList, next());
@@ -297,6 +310,24 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	}
 
 	
+	void AssGen::bpSwitchCase(STYPE &S, STYPE &E, STYPE &N,STYPE &CL){
+		backPatch(N.nextList,next());
+		while(!CL.valueList.empty()) {
+			int value = CL.valueList.top();
+			string instr = CL.instrList.top();
+			CL.valueList.pop();
+			CL.instrList.pop();
+			emitSwitchCase(E,value,instr);
+		}
+		S.nextList = CB.merge(CL.nextList,CB.makelist(nextInstr()));
+		emit(J);
+	}
+
+	void AssGen::emitSwitchCase(STYPE &E, int value, string instr){
+		ostringstream t;
+		t << "beq " << E.regName << " ,$" << value << " ," << instr;
+		emit(t.str());
+	}
 
 	void AssGen::bpIfElse(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1, STYPE &N, STYPE &M2, STYPE &S2){
 		backPatch(B.trueList, M1.instr);
@@ -374,26 +405,29 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	}
 
-	void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
-		//save registers
-		// *** ignored for now...
-		//old frame pointer
-		emit("addu $sp,$sp, 4");
-		emit("sw $fp, 0($sp)"); //save old fp
-		
-		//return address
-		emit("addu $sp,$sp, 4");
-		emit("sw $ra, 0($sp)"); //store return address
-		//Arguments
-		emitStoreArguments(numCallArgs); //put all arguments on stack
-		emit("lw $fp, 0($sp)"); //load the current sp value to fp
-		ostringstream t;
-		t << "j " << I1.varName;
-		emit(t.str());
-
-		//addd reallease of registers in the end of call
+	void AssGen::emitNewStackFrame() {
+		emit("move $fp, $sp"); //load the current sp value to fp
 	}
 
+void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
+	//save registers
+	// *** ignored for now...
+	//old frame pointer
+	emit("addu $sp, $sp, -4");
+	emit("sw $fp, 0($sp)"); //save old fp
+
+	//return address
+	emit("addu $sp, $sp, -4");
+	emit("sw $ra, 0($sp)"); //store return address
+	//Arguments
+	if(I1.varName != LIBPRINT)
+		emitStoreArguments(numCallArgs); //put all arguments on stack
+	emit("move $fp, $sp"); //load the current sp value to fp
+	ostringstream t;
+	t << "jal " << I1.varName;
+	emit(t.str());
+	emitRestoreOnReturn();
+}
 	void AssGen::emitFuncLable(string funcName){
 		
 		ostringstream t;
