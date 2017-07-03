@@ -44,7 +44,8 @@ void RegisterStore::ReturnRegister(string registerName) {
 	//std::cout << "in Return register : " << registerName << std::endl;
 	if(!ValidateRegister(registerName))
 		throw new InvalidRegisterNameException();
-	_registers.insert(registerName);
+	if(registerName != "$v0") // might consider list of special reisters
+		_registers.insert(registerName);
 }
 
 bool RegisterStore::ValidateRegister(string registerName) {
@@ -52,7 +53,7 @@ bool RegisterStore::ValidateRegister(string registerName) {
 
 	int regNum = registerName[2] - '0';
 	return registerName[0] == '$' &&
-		   registerName[1] == 's' || registerName[1] == 't' &&
+		   registerName[1] == 's' || registerName[1] == 't' || registerName[1] == 'v' &&
 									 regNum <= TTYPE_REG_MAX &&
 									 regNum >= 0;
 }

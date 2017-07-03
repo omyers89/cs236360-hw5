@@ -114,12 +114,14 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::emitReturnNonVoid(STYPE &V) {
 		ostringstream t;
+		t << "move $v0, " << V.regName;
 		RegisterStore::Instance().ReturnRegister(V.regName);
 		emit(t.str());
 		emitReturn();
 	}
 
 	void AssGen::emitReturn(){
+		emit("move $sp, $fp");
 		emit("jr $ra");
 	}
 

@@ -400,7 +400,7 @@ Call : ID LPAREN ExpList RPAREN
             $$.type = retType;
 			$1.type = retType;
 			AG->emitCallFuncById($$, $1, expected.size());
-			// ############ add here calculate func val###################### 
+			// ############ add here calculate func val######################
         }
     ;
 
@@ -454,7 +454,7 @@ Exp : LPAREN Exp RPAREN
 			$$.stringVal = $1.stringVal;
 			$$.boolVal = $1.boolVal;
 			symbolTable->LastExpTypeIs = $1.type;
-			//emit load return register to $$
+			$$.regName = "$v0";
 	  } |
 
       NUM
