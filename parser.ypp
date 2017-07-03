@@ -192,7 +192,7 @@ Statement : V LBRACE M Statements RBRACE
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
-                AG->emitReturnVoid();
+                AG->emitReturn();
             } |
             RETURN Exp SC
             {
@@ -347,8 +347,6 @@ Call : ID LPAREN ExpList RPAREN
 				AG->emitCallFuncById($$, $1, 1);
 
 				symbolTable->FlushExpList(1);
-
-
             }
             else
             {
@@ -401,6 +399,7 @@ Call : ID LPAREN ExpList RPAREN
             }
             $$.type = retType;
 			$1.type = retType;
+			AG->emitCallFuncById($$, $1, expected.size());
 			// ############ add here calculate func val###################### 
         }
     ;

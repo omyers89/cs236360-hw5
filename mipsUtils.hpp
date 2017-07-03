@@ -53,7 +53,8 @@ public:
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
 	void emitFuncLable(string funcName);
 	void emitReturnNonVoid(STYPE &V);
-	void emitReturnVoid();
+	void emitRestoreOnReturn();
+	void emitReturn();
 	vector<int> mergeLists(vector<int> &L1, vector<int> &L2);
 	void bpSwitchCase(STYPE &S, STYPE &E, STYPE &N,STYPE &CL);
 	void emitSwitchCase(STYPE &E, int value, string instr);

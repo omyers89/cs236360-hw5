@@ -114,15 +114,21 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::emitReturnNonVoid(STYPE &V) {
 		ostringstream t;
-		t << "move $v0, " << V.regName;
 		RegisterStore::Instance().ReturnRegister(V.regName);
 		emit(t.str());
-		emitReturnVoid();
+		emitReturn();
 	}
 
-	void AssGen::emitReturnVoid() {
+	void AssGen::emitReturn(){
+		emit("jr $ra");
+	}
+
+	void AssGen::emitRestoreOnReturn() {
 		ostringstream t;
-		t << "move $sp, $fp" << endl << "jr $ra";
+		emit("lw $ra, 0($sp)"); //restore caller $ra
+		emit("addu $sp, $sp, 4");
+		emit("lw $fp, 0($sp)"); // restore caller $fp
+		emit("move $sp, $fp"); //adjust $sp
 		emit(t.str());
 	}
 
@@ -338,21 +344,20 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 	//save registers
 	// *** ignored for now...
 	//old frame pointer
-	emit("addu $sp,$sp, -4");
+	emit("addu $sp, $sp, -4");
 	emit("sw $fp, 0($sp)"); //save old fp
 
 	//return address
-	emit("addu $sp,$sp, -4");
+	emit("addu $sp, $sp, -4");
 	emit("sw $ra, 0($sp)"); //store return address
 	//Arguments
 	if(I1.varName != LIBPRINT)
 		emitStoreArguments(numCallArgs); //put all arguments on stack
 	emit("move $fp, $sp"); //load the current sp value to fp
 	ostringstream t;
-	t << "j " << I1.varName;
+	t << "jal " << I1.varName;
 	emit(t.str());
-
-	//addd reallease of registers in the end of call
+	emitRestoreOnReturn();
 }
 	void AssGen::emitFuncLable(string funcName){
 		
