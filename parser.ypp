@@ -105,10 +105,8 @@ Statements : Statement
 Statement : V LBRACE M Statements RBRACE
             {
                 symbolTable->EndScope();
-               // AG->bpStmnt($$,$4); 
-			   $$.nextList = $4.nextList;
-			   backPatch(L.nextList, next());
-				//AG->bpStmntList($$, $1, $2, $3);
+                AG->bpStmnt($$,$4); 
+			  
             } |
             Type ID SC
             {
