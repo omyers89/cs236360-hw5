@@ -50,7 +50,7 @@ Program	: Funcs
 Funcs : FuncDecl Funcs | {if(!isAnyFuncDefined) {output::errorSyn(yylineno);exit(0);}}
 	;
 
-FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statements RBRACE
+FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statements {AG->bpStmnt($$, $9);} RBRACE
            {
                 isAnyFuncDefined = true;
                 /*if(areEqualTypes(symbolTable->ReturnType, $1.type))
@@ -63,8 +63,11 @@ FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statement
 				symbolTable->EndScope();
                 symbolTable->FlushFormalList();
                 symbolTable->ReturnType = _VOID;
+				
+				AG->emitReturn();
            }
     ;
+
 
 RetType : Type
           {
@@ -89,20 +92,21 @@ FormalDecl : Type ID
 Statements : Statement 
 			{
 				$$.type = $1.type;
-				AG->bpStmnt($$, $1);
+				$$.nextList = $1.nextList;
+				//AG->bpStmnt($$, $1);
 			} | 
-			Statements Mbp Statement 
+			  Statement Mbp Statements
 			{
 				$$.type = $2.type;
-				AG->bpStmntList($$, $1, $2, $3);
+				AG->bpStmntList($$, $3, $2, $1);
 			}
     ;
 
 Statement : V LBRACE M Statements RBRACE
             {
                 symbolTable->EndScope();
-                AG->bpStmnt($$,$4); //$$.nextList = $4.nextList;
-				//AG->bpStmntList($$, $1, $2, $3);
+                AG->bpStmnt($$,$4); 
+			  
             } |
             Type ID SC
             {
@@ -122,6 +126,7 @@ Statement : V LBRACE M Statements RBRACE
                 symbolTable->AddVar($2.varName,$1.type);
 				
                 AG->emitPushLocal();
+				//AG->setEmptyNextList($$);
             } |
             Type ID ASSIGN Exp SC
             {
@@ -156,9 +161,12 @@ Statement : V LBRACE M Statements RBRACE
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
 				if (isBoolean($4.type)){
-					AG->fixBoolAssign($$,$1, $4);
+					AG->fixBoolAssign($$,$2, $4);
 				}
+				else{
 				AG->emitPushInitializedLocal($4);
+				}
+				AG->setEmptyNextList($$);
             } |
             ID ASSIGN Exp SC
             {
@@ -185,9 +193,12 @@ Statement : V LBRACE M Statements RBRACE
                     exit(0);
                 }
 				if (isBoolean($3.type)){
-					AG->fixBoolAssign($$ , $1, $3);
+					AG->fixBoolAssignUpdate($$ , $1, $3);
 				}
-                AG->emitUpdateLocal($1,$3);
+				else{
+				AG->emitUpdateLocal($1,$3);
+				}
+                AG->setEmptyNextList($$);
             } |
             Call SC {
 				$$.type = $1.type;
@@ -201,31 +212,22 @@ Statement : V LBRACE M Statements RBRACE
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
+                AG->emitReturn();
             } |
             RETURN Exp SC
             {
                 varType outType;
                 bool resExp = symbolTable->GetVar($2.varName,outType);
 
-				/* cout << "in RETURN Exp SC:" << endl;
-				if (resExp){
-				cout << "found varName: " << $2.varName << endl;
-				cout << "out Type is: " << outType << endl;
-				cout << "st-> returntype is: " << symbolTable->ReturnType << endl;
-				} 
-				 cout << "st-> returntype is: " << symbolTable->ReturnType << endl; */
-                if((symbolTable->ReturnType == _VOID) 
+                if((symbolTable->ReturnType == _VOID)
 				|| (resExp && !areEqualTypes(symbolTable->ReturnType, outType)) 
 				|| ((!resExp) && !areEqualTypes(symbolTable->ReturnType, $2.type)))
                 {
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
-				//if (isBoolean($2.type)){
-				//	AG->fixBoolAssign($$,$2);
-				//}
-				//need to add here put var on stack or in the right register
 
+                AG->emitReturnNonVoid($2);
             } |
             IF LPAREN Exp RPAREN K Statement
             {
@@ -241,6 +243,7 @@ Statement : V LBRACE M Statements RBRACE
                 }
                 $$.type = $6.type;
 				AG->bpIf($$, $3, $5, $6);
+				//AG->setEmptyNextList($$);
 
             } |
             IF LPAREN Exp RPAREN K Statement ELSE Nbp KE Statement
@@ -256,7 +259,10 @@ Statement : V LBRACE M Statements RBRACE
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
                 $$.type = $9.type;
+				
 				AG->bpIfElse($$, $3, $5, $6, $8, $9, $10);
+				//AG->emit("## after ifElse----------------");
+				//AG->setEmptyNextList($$);
             } |
             WHILE Mbp LPAREN Exp RPAREN W Statement
             {
@@ -272,6 +278,7 @@ Statement : V LBRACE M Statements RBRACE
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
 				AG->emitWhile($$, $2, $4,  $6, $7);
+				
             } |
             BREAK SC
             {
@@ -282,35 +289,57 @@ Statement : V LBRACE M Statements RBRACE
                     exit(0);
                 }
             } |
-            SWITCH LPAREN Exp RPAREN KS LBRACE CaseList RBRACE SC
+            SWITCH LPAREN Exp Nbp RPAREN KS LBRACE CaseList RBRACE SC
             {
                 if(!isNumeric($3.type))
                 {
                     output::errorMismatch(yylineno);
                     exit(0);
                 }
+                AG->bpSwitchCase($$,$3,$4,$8);
             }
     ;
 
-CaseList : CaseStat CaseList | CaseStat
+CaseList : CaseStat CaseList
+           {
+                $$.instrList = $2.instrList;
+                $$.instrList.push($1.instr);
+                $$.valueList = $2.valueList;
+                $$.valueList.push($1.numVal);
+                $$.nextList = AG->mergeLists($2.nextList,$1.nextList);
+           } |
+           CaseStat
+           {
+                $$.instrList.push($1.instr);
+                $$.valueList.push($1.numVal);
+                $$.nextList = $1.nextList;
+           }
     ;
 
-CaseStat : CASE NUM COLON CKE Statement BREAK SC 
-			{
-			if(symbolTable->IsWhileOrIfScopeOpened)
-                {
-                    symbolTable->EndScope();
-                    symbolTable->IsWhileOrIfScopeOpened = false;
-                }
-			}|
-           CASE NUM B COLON CKE Statement BREAK SC
+CaseStat : CASE NUM COLON CKE Mbp Statement BREAK SC
 		   {
-			if(symbolTable->IsWhileOrIfScopeOpened)
+                if(symbolTable->IsWhileOrIfScopeOpened)
                 {
                     symbolTable->EndScope();
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
-			}
+
+                $$.instr = $5.instr;
+                $$.numVal = $2.numVal;
+                $$.nextList = $6.nextList;
+		   }|
+           CASE NUM B COLON CKE Mbp Statement BREAK SC
+		   {
+			    if(symbolTable->IsWhileOrIfScopeOpened)
+                {
+                    symbolTable->EndScope();
+                    symbolTable->IsWhileOrIfScopeOpened = false;
+                }
+
+                $$.instr = $6.instr;
+                $$.numVal = $2.numVal;
+                $$.nextList = $7.nextList;
+		   }
     ;
 
 Call : ID LPAREN ExpList RPAREN
@@ -325,11 +354,11 @@ Call : ID LPAREN ExpList RPAREN
                     exit(0);
                 }
                 $$.type = _VOID;
-				AG->emit("#### calling print");
+				//AG->emit("#### calling print");
 				AG->emitCallFuncById($$, $1, 1);
 
                 symbolTable->FlushExpList(1);
-				
+
             }
             else if($1.varName == LIBPRINTI)
             {
@@ -342,10 +371,8 @@ Call : ID LPAREN ExpList RPAREN
                 }
                 $$.type = _VOID;
 				AG->emitCallFuncById($$, $1, 1);
-                
-				symbolTable->FlushExpList(1);
-				
 
+				symbolTable->FlushExpList(1);
             }
             else
             {
@@ -361,7 +388,7 @@ Call : ID LPAREN ExpList RPAREN
 				std::cout << "size expected  is:"<< expected.size() <<std::endl;
 				std::cout << "expected is:" << expected[0] << std::endl;
 				*/
-                
+
 				if(res == PROTOTYPE_MISMATCH)
                 {
                     output::errorPrototypeMismatch(yylineno,$1.varName.c_str(),getTypeNames(expected));
@@ -398,19 +425,27 @@ Call : ID LPAREN ExpList RPAREN
             }
             $$.type = retType;
 			$1.type = retType;
-			// ############ add here calculate func val###################### 
+			AG->emitCallFuncById($$, $1, expected.size());
+			// ############ add here calculate func val######################
         }
     ;
 
 ExpList : Exp
           {
 		  //std::cout << "in ExpList : Exp \nExp is:" << $1.type <<std::endl;
+			
             symbolTable->AddToExpList($1);
+			if (isBoolean($1.type)){
+			AG->bpExpList( $1);
+			}
           } |
           Exp COMMA ExpList
           {
 		  //std::cout << "in ExpList : Exp COMMA ExpList \nExp1 is:" << $1.type  <<std::endl;
             symbolTable->AddToExpList($1);
+			if (isBoolean($1.type)){
+			AG->bpExpList( $1);
+			}
           }
     ;
 
@@ -452,7 +487,7 @@ Exp : LPAREN Exp RPAREN
 			$$.stringVal = $1.stringVal;
 			$$.boolVal = $1.boolVal;
 			symbolTable->LastExpTypeIs = $1.type;
-			//emit load return register to $$
+			$$.regName = "$v0";
 	  } |
 
       NUM
@@ -478,7 +513,14 @@ Exp : LPAREN Exp RPAREN
 			symbolTable->LastExpTypeIs = _BYTE;
 			AG->emitLoadNumToReg($1,$$);
       } |
-      STRING {$$.type = _STRING; $$.stringVal = $1.stringVal; $$.varName=""; symbolTable->LastExpTypeIs = _STRING;} |
+      STRING
+      {
+        $$.type = _STRING;
+        $$.stringVal = $1.stringVal;
+        $$.varName="";
+        symbolTable->LastExpTypeIs = _STRING;
+        AG->emitDataLiteral($1);
+      } |
       TRUE {$$.type = _BOOL; $$.boolVal = $1.boolVal; 
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
@@ -559,11 +601,12 @@ M : { symbolTable->OpenScope();}
 W : {
         symbolTable->WhileCount++;
         symbolTable->IsWhileOrIfIntact = true;
-		if ( !(symbolTable->LastExpTypeIs == _BOOL)){
-		output::errorMismatch(yylineno);
-        exit(0);
-	}
-	AG->addNextInstr($$);
+		if ( !(symbolTable->LastExpTypeIs == _BOOL))
+		{
+		    output::errorMismatch(yylineno);
+            exit(0);
+	    }
+	    AG->addNextInstr($$);
     }
     ;
 
@@ -617,16 +660,14 @@ Nbp : {AG->emitNbp($$);}
 
 int main(){
 	symbolTable = new SymbolTable();
-	//RS = new RegisterStore();
 	AG = new AssGen(symbolTable);
-	
 	isAnyFuncDefined = false;
 
 	AG->emitPrintI();
 	AG->emitPrint();
 
 	yyparse();
-    
+
 
 	//CodeBuffer::instance().printCodeBuffer();
 }
@@ -682,6 +723,7 @@ void addFunc(STYPE id, STYPE ret){
         exit(0);
     }
 	AG->emitFuncLable(id.varName);
+	AG->emitNewStackFrame();
     symbolTable->ReturnType = ret.type;
 }
 

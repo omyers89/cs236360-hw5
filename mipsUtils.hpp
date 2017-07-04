@@ -6,13 +6,15 @@
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
 #define INTOFST 4
+#define STRING_DATA_NAME "str"
 
 class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
-	
-	
+	int _dataLabelProducer;
+	int _dataLabelConsumer;
+
 	string next();
 	int nextInstr();
 
@@ -26,7 +28,7 @@ public:
 	void emitLoadNumToReg(STYPE &v1, STYPE &parent);
 	void emitLoadIdToReg(STYPE &v1, STYPE &parent);
 	void emitLoadBoolToReg(STYPE &v1, STYPE &parent);
-	string emitLoadBoolToReg( bool boolVal);
+	string emitLoadBoolToReg(bool boolVal);
 	string getBinOp(binop bo);
 	void emitBin(STYPE &v1, STYPE &v2, STYPE &parent, binop op);
 	string getRelOpBranch(relop ro);
@@ -45,15 +47,27 @@ public:
 	void addNextInstr(STYPE &M);
 	int emitNbp(STYPE &N);
 	void bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S);
+	void setEmptyNextList(STYPE &S);
 	void bpStmnt(STYPE &L, STYPE &S);
 	void emitStoreArguments(int numCallArgs);
 	void emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs);
 	void emitPushLocal();
 	void emitPushInitializedLocal(STYPE &V);
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
-	void emitUpdateLocalFromReg(STYPE &v1, string regName);
+	void emitPushInitializedLocalFromReg(STYPE &v1, string regName);
 	void emitFuncLable(string funcName);
+	void bpExpList(STYPE &E);
 	void fixBoolAssign(STYPE &S, STYPE &I, STYPE &E);
+	void fixBoolAssignUpdate(STYPE &S, STYPE &I, STYPE &E);
+	void emitReturnNonVoid(STYPE &V);
+	void emitRestoreOnReturn(int numArgs);
+	void emitReturn();
+	vector<int> mergeLists(vector<int> &L1, vector<int> &L2);
+	void bpSwitchCase(STYPE &S, STYPE &E, STYPE &N, STYPE &CL);
+	void emitSwitchCase(STYPE &E, int value, string instr);
+	void emitNewStackFrame();
+	void emitDataLiteral(STYPE &V);
+	void emitPushPrintArgs();
 };
 
 #endif
@@ -85,50 +99,50 @@ move	$t2,$t3	#  $t2 = $t3
 
 /*
 void emitTwoAddresses(string id, string id1, string id2, string op) {
-	Symbol* s1 = symbolsTable.GetSymbol(id1, yylineno);
-	Symbol* s2 = symbolsTable.GetSymbol(id2, yylineno);
-	//s2 = castBase(s1, s2);
+Symbol* s1 = symbolsTable.GetSymbol(id1, yylineno);
+Symbol* s2 = symbolsTable.GetSymbol(id2, yylineno);
+//s2 = castBase(s1, s2);
 
-	int address = symbolsTable.GetSymbol(id, yylineno)->_offset;
-	int address1 = s1->_offset;
-	int address2 = s2->_offset;
+int address = symbolsTable.GetSymbol(id, yylineno)->_offset;
+int address1 = s1->_offset;
+int address2 = s2->_offset;
 
 
-	ostringstream tmpCode;
-	tmpCode.str("");
-	tmpCode << "s[" << address << "]=s[" << address1 << "]" << op << "s[" << address2 << "]";
+ostringstream tmpCode;
+tmpCode.str("");
+tmpCode << "s[" << address << "]=s[" << address1 << "]" << op << "s[" << address2 << "]";
 
-	emit(tmpCode.str());
+emit(tmpCode.str());
 }
 
 void emitAssignBool(yystype* left_statement, yystype* r_id, yystype* r_exp) {
-	list<int> emptyList;
+list<int> emptyList;
 
-	int address = symbolsTable.GetSymbol(r_id->_id, yylineno)->_offset;
-	ostringstream tmpCode;
+int address = symbolsTable.GetSymbol(r_id->_id, yylineno)->_offset;
+ostringstream tmpCode;
 
-	tmpCode.str("");
-	tmpCode << "s[" << address << "]=1";
+tmpCode.str("");
+tmpCode << "s[" << address << "]=1";
 
-	bp(r_exp->trueList, next());
-	r_exp->trueList = emptyList;
+bp(r_exp->trueList, next());
+r_exp->trueList = emptyList;
 
-	emit(tmpCode.str());
-	left_statement->nextList = makelist(next());
-	emit("goto ");
+emit(tmpCode.str());
+left_statement->nextList = makelist(next());
+emit("goto ");
 
-	tmpCode.str("");
-	tmpCode << "s[" << address << "]=0";
+tmpCode.str("");
+tmpCode << "s[" << address << "]=0";
 
-	bp(r_exp->falseList, next());
-	r_exp->falseList = emptyList;
+bp(r_exp->falseList, next());
+r_exp->falseList = emptyList;
 
-	emit(tmpCode.str());
-	left_statement->nextList = merge(left_statement->nextList, makelist(next()));
-	emit("goto ");
+emit(tmpCode.str());
+left_statement->nextList = merge(left_statement->nextList, makelist(next()));
+emit("goto ");
 
-	bp(left_statement->nextList, next());
-	left_statement->nextList = emptyList;
+bp(left_statement->nextList, next());
+left_statement->nextList = emptyList;
 }
 
 #endif
