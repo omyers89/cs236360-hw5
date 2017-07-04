@@ -55,6 +55,7 @@ public:
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
 	void emitPushInitializedLocalFromReg(STYPE &v1, string regName);
 	void emitFuncLable(string funcName);
+	void bpExpList(STYPE &E);
 	void fixBoolAssign(STYPE &S, STYPE &I, STYPE &E);
 	void fixBoolAssignUpdate(STYPE &S, STYPE &I, STYPE &E);
 	void emitReturnNonVoid(STYPE &V);

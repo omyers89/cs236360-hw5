@@ -456,6 +456,16 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 		emit(t.str());
 	}
 
+	void AssGen::bpExpList(STYPE &E){
+		vector<int> newVec;
+		string l = next();
+		backPatch(E.falseList, l);
+		E.falseList = newVec;
+		backPatch(E.trueList, l);
+		E.falseList = newVec;
+
+	}
+
 	void AssGen::fixBoolAssign(STYPE &S, STYPE &I, STYPE &E){
 		vector<int> newVec;
 		//int ofst;
@@ -485,6 +495,8 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 		backPatch(S.nextList, next());
 		S.nextList = newVec;
 	}
+
+
 
 	void AssGen::fixBoolAssignUpdate(STYPE &S, STYPE &I, STYPE &E){
 		vector<int> newVec;

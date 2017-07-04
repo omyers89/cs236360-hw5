@@ -50,7 +50,7 @@ Program	: Funcs
 Funcs : FuncDecl Funcs | {if(!isAnyFuncDefined) {output::errorSyn(yylineno);exit(0);}}
 	;
 
-FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statements RBRACE
+FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statements  RBRACE
            {
                 isAnyFuncDefined = true;
                 /*if(areEqualTypes(symbolTable->ReturnType, $1.type))
@@ -64,8 +64,10 @@ FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statement
                 symbolTable->FlushFormalList();
                 symbolTable->ReturnType = _VOID;
 				AG->bpStmnt($$, $9);
+				AG->emitReturn();
            }
     ;
+
 
 RetType : Type
           {
@@ -432,12 +434,15 @@ Call : ID LPAREN ExpList RPAREN
 ExpList : Exp
           {
 		  //std::cout << "in ExpList : Exp \nExp is:" << $1.type <<std::endl;
+			
             symbolTable->AddToExpList($1);
+			AG->bpExpList($1);
           } |
           Exp COMMA ExpList
           {
 		  //std::cout << "in ExpList : Exp COMMA ExpList \nExp1 is:" << $1.type  <<std::endl;
             symbolTable->AddToExpList($1);
+			AG->bpExpList($3);
           }
     ;
 
