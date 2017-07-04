@@ -1,3 +1,4 @@
+
 #include "SymbolTable.hpp"
 #include <iostream>
 #include <sstream>
@@ -560,6 +561,7 @@ sub		$t2,$t3,$t4	#  $t2 = $t3 - $t4
 addi	$t2,$t3, 5	#  $t2 = $t3 + 5;   "add immediate" (no sub immediate)
 addu	$t1,$t6,$t7	#  $t1 = $t6 + $t7;   add as unsigned integers
 subu	$t1,$t6,$t7	#  $t1 = $t6 + $t7;   subtract as unsigned integers
+
 mult	$t3,$t4		#  multiply 32-bit quantities in $t3 and $t4, and store 64-bit
 #  result in special registers Lo and Hi:  (Hi,Lo) = $t3 * $t4
 div		$t5,$t6		#  Lo = $t5 / $t6   (integer quotient)
@@ -567,7 +569,9 @@ div		$t5,$t6		#  Lo = $t5 / $t6   (integer quotient)
 mfhi	$t0		#  move quantity in special register Hi to $t0:   $t0 = Hi
 mflo	$t1		#  move quantity in special register Lo to $t1:   $t1 = Lo
 #  used to get at result of product or quotient
+
 move	$t2,$t3	#  $t2 = $t3
+
 */
 
 //****** add asign to ID, jump to func, decler func 
@@ -577,40 +581,59 @@ void emitTwoAddresses(string id, string id1, string id2, string op) {
 Symbol* s1 = symbolsTable.GetSymbol(id1, yylineno);
 Symbol* s2 = symbolsTable.GetSymbol(id2, yylineno);
 //s2 = castBase(s1, s2);
+
 int address = symbolsTable.GetSymbol(id, yylineno)->_offset;
 int address1 = s1->_offset;
 int address2 = s2->_offset;
+
+
 ostringstream tmpCode;
 tmpCode.str("");
 tmpCode << "s[" << address << "]=s[" << address1 << "]" << op << "s[" << address2 << "]";
+
 emit(tmpCode.str());
 }
+
 void emitAssignBool(yystype* left_statement, yystype* r_id, yystype* r_exp) {
 list<int> emptyList;
+
 int address = symbolsTable.GetSymbol(r_id->_id, yylineno)->_offset;
 ostringstream tmpCode;
+
 tmpCode.str("");
 tmpCode << "s[" << address << "]=1";
+
 bp(r_exp->trueList, next());
 r_exp->trueList = emptyList;
+
 emit(tmpCode.str());
 left_statement->nextList = makelist(next());
 emit("goto ");
+
 tmpCode.str("");
 tmpCode << "s[" << address << "]=0";
+
 bp(r_exp->falseList, next());
 r_exp->falseList = emptyList;
+
 emit(tmpCode.str());
 left_statement->nextList = merge(left_statement->nextList, makelist(next()));
 emit("goto ");
+
 bp(left_statement->nextList, next());
 left_statement->nextList = emptyList;
 }
+
 #endif
+
 */
 
 
 /*
 add markers at the right places for brach and all that
+
 make sure code is writen when defining a function..
+
+
 */
+
