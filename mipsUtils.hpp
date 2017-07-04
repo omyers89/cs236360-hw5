@@ -12,7 +12,7 @@ class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
-	
+	int _dataLabelCounter;
 
 	string next();
 	int nextInstr();
@@ -59,7 +59,7 @@ public:
 	void fixBoolAssign(STYPE &S, STYPE &I, STYPE &E);
 	void fixBoolAssignUpdate(STYPE &S, STYPE &I, STYPE &E);
 	void emitReturnNonVoid(STYPE &V);
-	void emitRestoreOnReturn();
+	void emitRestoreOnReturn(int numArgs);
 	void emitReturn();
 	vector<int> mergeLists(vector<int> &L1, vector<int> &L2);
 	void bpSwitchCase(STYPE &S, STYPE &E, STYPE &N,STYPE &CL);
