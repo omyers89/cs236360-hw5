@@ -52,7 +52,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	int AssGen::emitPrint(){
 		emit("print:");
 		ostringstream t;
-		t << "la $a0, " << STRING_DATA_NAME;
+		t << "la $a0, " << STRING_DATA_NAME << _dataLabelCounter;
 		emit(t.str());
 		emit("li $v0, 4");
 		emit("syscall");
@@ -91,6 +91,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		t << "lw " << freshReg << " ," << sign << INTOFST*ofst << "($fp)";
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
+		parent.trueList = v1.trueList;
+		parent.falseList = v1.falseList;
 	}
 
 	void AssGen::emitPushLocal() {
@@ -173,6 +175,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		t << "li " << freshReg << ", " << BoolVal;
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
+		parent.trueList = v1.trueList;
+		parent.falseList = v1.falseList;
 	}
 
 
@@ -188,6 +192,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		int BlVal = boolVal ? 1 : 0;
 		t << "li " << freshReg << ", " << BlVal;
 		emit(t.str());
+
 		return freshReg;
 	}
 
@@ -460,14 +465,14 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 		emit(t.str());
 	}
 
-	void AssGen::bpExpList(STYPE &E){
+	void AssGen::bpExpList( STYPE &E){
+		//STYPE &EL,
 		vector<int> newVec;
 		string l = next();
 		backPatch(E.falseList, l);
 		E.falseList = newVec;
 		backPatch(E.trueList, l);
 		E.falseList = newVec;
-
 	}
 
 	void AssGen::fixBoolAssign(STYPE &S, STYPE &I, STYPE &E){
