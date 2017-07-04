@@ -46,15 +46,17 @@ public:
 	void addNextInstr(STYPE &M);
 	int emitNbp(STYPE &N);
 	void bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S);
+	void setEmptyNextList(STYPE &S);
 	void bpStmnt(STYPE &L, STYPE &S);
 	void emitStoreArguments(int numCallArgs);
 	void emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs);
 	void emitPushLocal();
 	void emitPushInitializedLocal(STYPE &V);
 	void emitUpdateLocal(STYPE &v1, STYPE &v2);
-	void emitUpdateLocalFromReg(STYPE &v1, string regName);
+	void emitPushInitializedLocalFromReg(STYPE &v1, string regName);
 	void emitFuncLable(string funcName);
 	void fixBoolAssign(STYPE &S, STYPE &I, STYPE &E);
+	void fixBoolAssignUpdate(STYPE &S, STYPE &I, STYPE &E);
 	void emitReturnNonVoid(STYPE &V);
 	void emitRestoreOnReturn();
 	void emitReturn();

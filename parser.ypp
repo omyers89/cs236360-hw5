@@ -63,6 +63,7 @@ FuncDecl : RetType ID LPAREN Formals RPAREN {addFunc($2,$1);} LBRACE V Statement
 				symbolTable->EndScope();
                 symbolTable->FlushFormalList();
                 symbolTable->ReturnType = _VOID;
+				AG->bpStmnt($$, $9);
            }
     ;
 
@@ -89,7 +90,8 @@ FormalDecl : Type ID
 Statements : Statement 
 			{
 				$$.type = $1.type;
-				AG->bpStmnt($$, $1);
+				$$.nextList = $1.nextList;
+				//AG->bpStmnt($$, $1);
 			} | 
 			Statements Mbp Statement 
 			{
@@ -101,7 +103,8 @@ Statements : Statement
 Statement : V LBRACE M Statements RBRACE
             {
                 symbolTable->EndScope();
-                AG->bpStmnt($$,$4); //$$.nextList = $4.nextList;
+               // AG->bpStmnt($$,$4); 
+			   $$.nextList = $4.nextList;
 				//AG->bpStmntList($$, $1, $2, $3);
             } |
             Type ID SC
@@ -122,6 +125,7 @@ Statement : V LBRACE M Statements RBRACE
                 symbolTable->AddVar($2.varName,$1.type);
 				
                 AG->emitPushLocal();
+				//AG->setEmptyNextList($$);
             } |
             Type ID ASSIGN Exp SC
             {
@@ -156,9 +160,12 @@ Statement : V LBRACE M Statements RBRACE
 				$2.type = $1.type;
                 symbolTable->AddVar($2.varName,$1.type);
 				if (isBoolean($4.type)){
-					AG->fixBoolAssign($$,$1, $4);
+					AG->fixBoolAssign($$,$2, $4);
 				}
+				else{
 				AG->emitPushInitializedLocal($4);
+				}
+				AG->setEmptyNextList($$);
             } |
             ID ASSIGN Exp SC
             {
@@ -185,9 +192,12 @@ Statement : V LBRACE M Statements RBRACE
                     exit(0);
                 }
 				if (isBoolean($3.type)){
-					AG->fixBoolAssign($$ , $1, $3);
+					AG->fixBoolAssignUpdate($$ , $1, $3);
 				}
-                AG->emitUpdateLocal($1,$3);
+				else{
+				AG->emitUpdateLocal($1,$3);
+				}
+                AG->setEmptyNextList($$);
             } |
             Call SC {
 				$$.type = $1.type;
@@ -232,6 +242,7 @@ Statement : V LBRACE M Statements RBRACE
                 }
                 $$.type = $6.type;
 				AG->bpIf($$, $3, $5, $6);
+				//AG->setEmptyNextList($$);
 
             } |
             IF LPAREN Exp RPAREN K Statement ELSE Nbp KE Statement
@@ -247,7 +258,10 @@ Statement : V LBRACE M Statements RBRACE
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
                 $$.type = $9.type;
+				
 				AG->bpIfElse($$, $3, $5, $6, $8, $9, $10);
+				//AG->emit("## after ifElse----------------");
+				//AG->setEmptyNextList($$);
             } |
             WHILE Mbp LPAREN Exp RPAREN W Statement
             {
@@ -263,6 +277,7 @@ Statement : V LBRACE M Statements RBRACE
                     symbolTable->IsWhileOrIfScopeOpened = false;
                 }
 				AG->emitWhile($$, $2, $4,  $6, $7);
+				
             } |
             BREAK SC
             {
@@ -338,7 +353,7 @@ Call : ID LPAREN ExpList RPAREN
                     exit(0);
                 }
                 $$.type = _VOID;
-				AG->emit("#### calling print");
+				//AG->emit("#### calling print");
 				AG->emitCallFuncById($$, $1, 1);
 
                 symbolTable->FlushExpList(1);
@@ -502,14 +517,14 @@ Exp : LPAREN Exp RPAREN
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->emitTrue($$);
-			AG->emitLoadBoolToReg($1, $$);
+			//AG->emitLoadBoolToReg($1, $$);
 			} |
       FALSE {$$.type = _BOOL; 
 			$$.boolVal = $1.boolVal; 
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->emitFalse($$);
-			AG->emitLoadBoolToReg($1, $$);
+			//AG->emitLoadBoolToReg($1, $$);
 			} |
       NOT Exp
       {

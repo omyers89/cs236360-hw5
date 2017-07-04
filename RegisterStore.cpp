@@ -42,6 +42,9 @@ string RegisterStore::GetRegister() {
 
 void RegisterStore::ReturnRegister(string registerName) {
 	//std::cout << "in Return register : " << registerName << std::endl;
+	//cout << "ReturnRegister :::register name is: " << registerName << endl;
+	//cout << "registerName[0]: " << registerName[0] << endl;
+	//cout << "registerName[1]: " << registerName[1] << endl;
 	if(!ValidateRegister(registerName))
 		throw new InvalidRegisterNameException();
 	if(registerName != "$v0") // might consider list of special reisters
@@ -49,11 +52,14 @@ void RegisterStore::ReturnRegister(string registerName) {
 }
 
 bool RegisterStore::ValidateRegister(string registerName) {
+	
 	if (registerName.size() != 3) return false;
-
+	
 	int regNum = registerName[2] - '0';
+	//cout << "reg num is: " << regNum << endl;
+
 	return registerName[0] == '$' &&
-		   registerName[1] == 's' || registerName[1] == 't' || registerName[1] == 'v' &&
+		   (registerName[1] == 's' || registerName[1] == 't' || registerName[1] == 'v') &&
 									 regNum <= TTYPE_REG_MAX &&
 									 regNum >= 0;
 }

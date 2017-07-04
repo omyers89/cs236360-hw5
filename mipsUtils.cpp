@@ -9,7 +9,14 @@
 
 #define DEBUG_CB (do{ if (DBG) CodeBuffer::instance().printCodeBuffer();}while(false))
 
+void printVec(vector<int> vec){
+	for (vector<int>::iterator it = vec.begin(); it != vec.end(); it++){
+		ostringstream t;
+		t << "##" << *it;
+		CB.emit(t.str());
+	}
 
+}
 
 	
 int AssGen::emit(string s){
@@ -116,6 +123,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	void AssGen::emitReturnNonVoid(STYPE &V) {
 		ostringstream t;
 		t << "move $v0, " << V.regName;
+		//std::cout << "emitReturnNonVoidV is:" << V.varName << V.binVal << V.numVal << V.boolVal << V.stringVal;
+
 		RegisterStore::Instance().ReturnRegister(V.regName);
 		emit(t.str());
 		emitReturn();
@@ -127,21 +136,23 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	}
 
 	void AssGen::emitRestoreOnReturn() {
-		ostringstream t;
+		//ostringstream t;
 		emit("lw $ra, 0($sp)"); //restore caller $ra
 		emit("addu $sp, $sp, 4");
 		emit("lw $fp, 0($sp)"); // restore caller $fp
 		emit("move $sp, $fp"); //adjust $sp
-		emit(t.str());
+		//emit(t.str());
 	}
 
 
-	void AssGen::emitUpdateLocalFromReg(STYPE &v1, string regName){
+	void AssGen::emitPushInitializedLocalFromReg(STYPE &v1, string regName){
 		ostringstream t;
-		int ofst;
-		varType vt;
-		st->GetVarOfset(v1.varName, vt, ofst);
-		t << "sw " << regName << " ," << INTOFST*ofst << "($fp)";
+		emitPushLocal();
+		t << "sw " << regName << " ,0($sp)";
+		//std::cout << "in emitPushInitializedLocalfromreg 1 befor return register : " << v1.varName << ", reg is:" << regName << std::endl;
+		//std::cout << "emitPushInitializedLocalfromreg V is:" << v1.varName << v1.binVal << v1.numVal << v1.boolVal << v1.stringVal;
+
+		RegisterStore::Instance().ReturnRegister(regName);
 		emit(t.str());
 	}
 
@@ -202,7 +213,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		emit(t.str());
 
 		//std::cout << "in emeit bin befor return register : " << v2.regName << std::endl;
-
+		//cout << "emit bin :" << sop << " " << v1.regName << ", " << v1.regName << ", " << v2.regName;
 		RegisterStore::Instance().ReturnRegister(v2.regName);
 		parent.regName = v1.regName;
 	}
@@ -260,6 +271,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	}
 	
 	void AssGen::bpAnd(STYPE &VV, STYPE &v1, STYPE &M, STYPE &v2){
+		//printVec(v1.trueList);
 		backPatch(v1.trueList, M.instr);
 		VV.trueList = v2.trueList;
 		VV.falseList = CodeBuffer::merge(v1.falseList, v2.falseList);
@@ -286,14 +298,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		return emit(J);
 	}
 
-	void printVec(vector<int> vec){
-		for (vector<int>::iterator it = vec.begin(); it != vec.end(); it++){
-			ostringstream t;
-			t << "##" << *it;
-			CB.emit(t.str());
-		}
-
-	}
+	
 	
 	vector<int> AssGen::mergeLists(vector<int> &L1, vector<int> &L2) {
 		return CodeBuffer::instance().merge(L1,L2);
@@ -303,6 +308,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		backPatch(B.trueList, M1.instr);
 		backPatch(B.falseList, next());
 		S.nextList = CodeBuffer::merge(B.falseList, S1.nextList);
+		//cout <<  "bpIf: " << B.regName << ", " << endl;
 		RegisterStore::Instance().ReturnRegister(B.regName);
 
 		//emit("int bpIf");
@@ -330,10 +336,18 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	}
 
 	void AssGen::bpIfElse(STYPE &S, STYPE &B, STYPE &M1, STYPE &S1, STYPE &N, STYPE &M2, STYPE &S2){
+		
+		//emit("bpIfElse B true:");
+		//printVec(B.trueList);
 		backPatch(B.trueList, M1.instr);
+		//emit("bpIfElse B false:");
+		//printVec(B.falseList);
+
 		backPatch(B.falseList, M2.instr);
 		S.nextList = CodeBuffer::merge(CodeBuffer::merge(S1.nextList, N.nextList), S2.nextList);
-		RegisterStore::Instance().ReturnRegister(B.regName);
+		//emit("bpIfElse s nextList:");
+		//printVec(S.nextList);
+		//RegisterStore::Instance().ReturnRegister(B.regName);
 		//emit("int bpIfElse");
 		//printVec(S.nextList);
 	}
@@ -361,20 +375,27 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::bpStmntList(STYPE &L, STYPE &L1, STYPE &M, STYPE &S){
 		
-		printVec(L1.nextList);
-		//emit("### print S list:");
-
-		printVec(S.nextList);
+		//emit("### bpStmntList print L1 list:");
+		//printVec(L1.nextList);
+		
+		//printVec(S.nextList);
 		backPatch(L1.nextList, M.instr);
 		L.nextList = S.nextList;
 		//emit("### print L list:");
 
-		printVec(S.nextList);
+		//printVec(S.nextList);
 		
 		
 
 	}
 
+	void AssGen::setEmptyNextList(STYPE &S){
+		//emit("### in bpStmnt");
+		vector<int> emptyList;
+		S.nextList = emptyList;
+		
+
+	}
 
 	void AssGen::bpStmnt(STYPE &L, STYPE &S){
 		//emit("### in bpStmnt");
@@ -389,6 +410,9 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	void AssGen::emitStoreArguments(int numCallArgs){
 		
 		int last = st->expList.size();
+		if (last == 0){
+			return;
+		}
 		last--;
 		for (int i = numCallArgs; i > 0; i--){
 			STYPE tmpVar = st->expList[last];
@@ -400,11 +424,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	}
 
-	void emitFpSp(){
-		
-
-	}
-
+	
 	void AssGen::emitNewStackFrame() {
 		emit("move $fp, $sp"); //load the current sp value to fp
 	}
@@ -420,7 +440,8 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 	emit("addu $sp, $sp, -4");
 	emit("sw $ra, 0($sp)"); //store return address
 	//Arguments
-	if(I1.varName != LIBPRINT)
+	if (I1.varName != LIBPRINT)
+		//cout << I1.varName << endl;
 		emitStoreArguments(numCallArgs); //put all arguments on stack
 	emit("move $fp, $sp"); //load the current sp value to fp
 	ostringstream t;
@@ -441,24 +462,57 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 		//varType vt;
 		//st->GetVarOfset(I.varName, vt, ofst);
 		//ostringstream t;
+		//emit("##fixBoolAssign truelist:");
+
+		//printVec(E.trueList);
 		backPatch(E.trueList, next());
 		E.trueList = newVec;
 		string newReg = emitLoadBoolToReg(true);
-		emitUpdateLocalFromReg(I, newReg);
+		emitPushInitializedLocalFromReg(I, newReg);
+		S.nextList = CB.makelist(nextInstr());
+		emit(J);
+		//emit("##fixBoolAssign flist:");
+		//printVec(E.falseList);
+		backPatch(E.falseList, next());
+		E.falseList = newVec;
+		string newReg2 = emitLoadBoolToReg(false);
+		emitPushInitializedLocalFromReg(I, newReg2);
+		
+		S.nextList = CodeBuffer::merge(S.nextList, CB.makelist(nextInstr()));
+		emit(J);
+		//emit("##fixBoolAssign s nextList:");
+		//printVec(S.nextList);
+		backPatch(S.nextList, next());
+		S.nextList = newVec;
+	}
+
+	void AssGen::fixBoolAssignUpdate(STYPE &S, STYPE &I, STYPE &E){
+		vector<int> newVec;
+		//int ofst;
+		//varType vt;
+		//st->GetVarOfset(I.varName, vt, ofst);
+		//ostringstream t;
+		backPatch(E.trueList, next());
+		E.trueList = newVec;
+		STYPE ItmpT;
+		ItmpT.regName = emitLoadBoolToReg(true);
+		emitUpdateLocal(I, ItmpT);
 		S.nextList = CB.makelist(nextInstr());
 		emit(J);
 
 		backPatch(E.falseList, next());
 		E.falseList = newVec;
-		string newReg2 = emitLoadBoolToReg(false);
-		emitUpdateLocalFromReg(I, newReg2);
-		
+
+		STYPE ItmpF;
+		ItmpF.regName = emitLoadBoolToReg(false);
+		emitUpdateLocal(I, ItmpF);
 		S.nextList = CodeBuffer::merge(S.nextList, CB.makelist(nextInstr()));
 		emit(J);
-		
+
 		backPatch(S.nextList, next());
 		S.nextList = newVec;
 	}
+
 
 /*
 add		$t0,$t1,$t2	#  $t0 = $t1 + $t2;   add as signed (2's complement) integers
