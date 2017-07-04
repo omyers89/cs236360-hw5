@@ -29,6 +29,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	AssGen::AssGen(SymbolTable* nst) :tempIndexCounter(0){
 		st = nst;
+		_dataLabelCounter = 0;
 	}
 
 
@@ -53,7 +54,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::emitDataLiteral(STYPE &V) {
 		ostringstream t;
-		t << STRING_DATA_NAME << ": .asciiz " << V.stringVal;
+		t << STRING_DATA_NAME << _dataLabelCounter++ << ": .asciiz " << V.stringVal;
 		CB.emitData(t.str());
 	}
 
@@ -125,13 +126,15 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		emit("jr $ra");
 	}
 
-	void AssGen::emitRestoreOnReturn() {
+	void AssGen::emitRestoreOnReturn(int numArgs) {
 		ostringstream t;
+		t << "addu $sp, $sp, " << INTOFST*numArgs; //pop arguments
+		emit(t.str());
 		emit("lw $ra, 0($sp)"); //restore caller $ra
 		emit("addu $sp, $sp, 4");
 		emit("lw $fp, 0($sp)"); // restore caller $fp
 		emit("move $sp, $fp"); //adjust $sp
-		emit(t.str());
+
 	}
 
 	void AssGen::emitLoadBoolToReg(STYPE &v1, STYPE &parent){
@@ -359,7 +362,7 @@ void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
 	ostringstream t;
 	t << "jal " << I1.varName;
 	emit(t.str());
-	emitRestoreOnReturn();
+	emitRestoreOnReturn(numCallArgs);
 }
 	void AssGen::emitFuncLable(string funcName){
 		
