@@ -29,7 +29,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	AssGen::AssGen(SymbolTable* nst) :tempIndexCounter(0){
 		st = nst;
-		_dataLabelCounter = 0;
+		_dataLabelProducer = _dataLabelConsumer = 0;
 	}
 
 
@@ -45,7 +45,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 	int AssGen::emitPrint(){
 		emit("print:");
 		ostringstream t;
-		t << "la $a0, " << STRING_DATA_NAME;
+		t << "lw $a0, 0($fp)";
 		emit(t.str());
 		emit("li $v0, 4");
 		emit("syscall");
@@ -54,7 +54,7 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 
 	void AssGen::emitDataLiteral(STYPE &V) {
 		ostringstream t;
-		t << STRING_DATA_NAME << _dataLabelCounter++ << ": .asciiz " << V.stringVal;
+		t << STRING_DATA_NAME << _dataLabelProducer++ << ": .asciiz " << V.stringVal;
 		CB.emitData(t.str());
 	}
 
@@ -345,25 +345,44 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		emit("move $fp, $sp"); //load the current sp value to fp
 	}
 
-void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
-	//save registers
-	// *** ignored for now...
-	//old frame pointer
-	emit("addu $sp, $sp, -4");
-	emit("sw $fp, 0($sp)"); //save old fp
+	void AssGen::emitCallFuncById(STYPE &C, STYPE &I1, int numCallArgs){
+		//save registers
+		// *** ignored for now...
+		//old frame pointer
+		ostringstream t;
+		emit("addu $sp, $sp, -4");
+		emit("sw $fp, 0($sp)"); //save old fp
 
-	//return address
-	emit("addu $sp, $sp, -4");
-	emit("sw $ra, 0($sp)"); //store return address
-	//Arguments
-	if(I1.varName != LIBPRINT)
-		emitStoreArguments(numCallArgs); //put all arguments on stack
-	emit("move $fp, $sp"); //load the current sp value to fp
-	ostringstream t;
-	t << "jal " << I1.varName;
-	emit(t.str());
-	emitRestoreOnReturn(numCallArgs);
-}
+		//return address
+		emit("addu $sp, $sp, -4");
+		emit("sw $ra, 0($sp)"); //store return address
+		//Arguments
+		if(I1.varName != LIBPRINT)
+			emitStoreArguments(numCallArgs); //put all arguments on stack
+		else
+			emitPushPrintArgs();
+		emit("move $fp, $sp"); //load the current sp value to fp
+		t << "jal " << I1.varName;
+		emit(t.str());
+		if(I1.varName != LIBPRINT)
+			emitRestoreOnReturn(numCallArgs);
+		else
+			emitRestoreOnReturn(1);
+	}
+
+	void AssGen::emitPushPrintArgs()
+	{
+		ostringstream t;
+		string regName = RegisterStore::Instance().GetRegister();
+		t << "la " << regName << ", " << STRING_DATA_NAME << _dataLabelConsumer++;
+		emit(t.str());
+		emit("addu $sp, $sp, -4");
+		t.str("");
+		t << "sw " << regName << ", 0($sp)";
+		emit(t.str());
+		RegisterStore::Instance().ReturnRegister(regName);
+	}
+
 	void AssGen::emitFuncLable(string funcName){
 		
 		ostringstream t;
