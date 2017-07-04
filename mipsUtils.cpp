@@ -176,8 +176,8 @@ void AssGen::backPatch(const std::vector<int>& address_list, const std::string &
 		t << "li " << freshReg << ", " << BoolVal;
 		emit(t.str());
 		v1.regName = parent.regName = freshReg;
-		parent.trueList = v1.trueList;
-		parent.falseList = v1.falseList;
+		//parent.trueList = v1.trueList;
+		//parent.falseList = v1.falseList;
 	}
 
 
