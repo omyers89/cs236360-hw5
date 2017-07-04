@@ -12,7 +12,8 @@ class AssGen{
 private:
 	int tempIndexCounter;
 	SymbolTable* st;
-	int _dataLabelCounter;
+	int _dataLabelProducer;
+	int _dataLabelConsumer;
 
 	string next();
 	int nextInstr();
@@ -66,6 +67,7 @@ public:
 	void emitSwitchCase(STYPE &E, int value, string instr);
 	void emitNewStackFrame();
 	void emitDataLiteral(STYPE &V);
+	void emitPushPrintArgs();
 };
 
 #endif
