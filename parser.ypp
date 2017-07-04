@@ -517,14 +517,14 @@ Exp : LPAREN Exp RPAREN
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->emitTrue($$);
-			//AG->emitLoadBoolToReg($1, $$);
+			AG->emitLoadBoolToReg($1, $$);
 			} |
       FALSE {$$.type = _BOOL; 
 			$$.boolVal = $1.boolVal; 
 			$$.varName=""; 
 			symbolTable->LastExpTypeIs = _BOOL;
 			AG->emitFalse($$);
-			//AG->emitLoadBoolToReg($1, $$);
+			AG->emitLoadBoolToReg($1, $$);
 			} |
       NOT Exp
       {
